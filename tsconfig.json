@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "noImplicitAny": false,
+    "removeComments": true,
+    "preserveConstEnums": true,
+    "sourceMap": true
+  },
+  "files": [
+    "src/index.ts",
+    "test/integration.ts",
+    "test/Repliq.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

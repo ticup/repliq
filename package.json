@@ -1,0 +1,32 @@
+{
+  "name": "Repliq",
+  "version": "0.0.1",
+  "description": "Realtime & Offline Shared Data",
+  "main": "index.js",
+  "dependencies": {
+    "bluebird": "^3.0.5",
+    "debug": "^2.2.0",
+    "mocha": "^2.3.4",
+    "node-uuid": "^1.4.7",
+    "should": "^7.1.1",
+    "socket.io": "^1.3.7",
+    "socket.io-client": "^1.3.7"
+  },
+  "devDependencies": {
+    "babel-preset-es2015": "^6.1.18",
+    "typescript": "^1.5.3"
+  },
+  "scripts": {
+    "compile": "tsc --module commonjs --outFile built/main.js src/index.ts",
+    "compile-watch": "tsc --module commonjs --outFile built/main.js -w"
+  },
+  "keywords": [
+    "Realtime",
+    "Offline",
+    "Shared",
+    "Eventual Consistency",
+    "CRDT"
+  ],
+  "author": "Tim Coppieters",
+  "license": "MIT"
+}
