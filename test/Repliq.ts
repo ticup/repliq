@@ -46,7 +46,7 @@ describe("Unit Test * ", () => {
 
 
     describe("Repliq", () => {
-        let template = new RepliqTemplate();
+        let template = new RepliqTemplate({foo:"bar"});
 
         describe("#new(template, clientId)", () => {
             let r = new Repliq(template, "id");
@@ -63,10 +63,16 @@ describe("Unit Test * ", () => {
         });
 
         describe("#new(template, clientId, props)", () => {
-            let props = {foo:"bar", setFoo(val) { this.foo = val }};
             it("should return a Repliq object", () => {
+                let props = {foo:"foo"};
                 let r = new Repliq(template, "id", props);
                 should(r).be.an.instanceOf(Repliq);
+            });
+
+            it("should overwrite the default fields", () => {
+                let props = {foo:"foo"};
+                let r = new Repliq(template, "id", props);
+                should.equal(r.get("foo"), "foo");
             });
         });
     });

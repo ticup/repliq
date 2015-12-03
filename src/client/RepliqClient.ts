@@ -4,26 +4,21 @@
 
 import * as Debug from "debug";
 import * as io from 'socket.io-client';
-import * as com from "../shared/Communication";
 import * as Promise from "bluebird";
-import {RepliqTemplate, Repliq} from "../shared/Repliq";
-import {guid} from "../shared/guid";
 
+import * as com from "../shared/Communication";
+import {Client} from "../shared/Client";
+
+import {RepliqTemplate, Repliq} from "../shared/Repliq";
 let debug = Debug("Repliq:com:client");
 
-export class RepliqClient {
-
-    private id : string;
+export class RepliqClient extends Client {
 
     channel : SocketIOClient.Socket;
 
-    repliqs : Object;
-
-
     constructor(host: string) {
         this.channel = io(host, {forceNew: true});
-        this.repliqs = {};
-        this.id = guid();
+        super();
     }
 
     onConnect() {
@@ -44,18 +39,12 @@ export class RepliqClient {
                 debug("received rpc result for " + selector + "(" + args + ") : " + result);
                 if (error)
                     return reject(error);
-                resolve(com.deserialize(ser));
+                resolve(com.deserialize(ser, this));
             });
         });
     }
 
     stop() {
         this.channel.close();
-    }
-
-    create(template: RepliqTemplate, args) {
-        let repl = new Repliq(template, args, this.id);
-        this.repliqs[repl.getId()] = repl;
-        return replw;
     }
 }

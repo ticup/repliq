@@ -1,6 +1,8 @@
 ///<reference path="./Repliq" />
+///<reference path="../shared/Client" />
 
 import {Repliq, define as defineRepliq} from "./Repliq";
+import {Client} from "../shared/Client";
 
 export interface RpcRequest {
     selector: string;
@@ -8,7 +10,7 @@ export interface RpcRequest {
 }
 
 export interface SerializedObject {
-    val: Object;
+    val: any;
     type?: string;
 }
 
@@ -34,8 +36,8 @@ export function serialize(val: Object): SerializedObject {
             return { val: (<Array<Object>>val).map(serialize), type: "Array" };
         }
         if (val instanceof Repliq) {
-            let obj = {};
-            val.commitKeys().forEach((key) => obj[key] = val.getCommit(key));
+            let obj = {values: {}, templateId: val.getTemplate().getId()};
+            val.commitKeys().forEach((key) => obj.values[key] = serialize(val.getCommit(key)));
             return { val: obj, type: "Repliq" };
         }
         let obj = {};
@@ -51,27 +53,34 @@ export function serialize(val: Object): SerializedObject {
 }
 
 
-export function deserialize({val, type}: SerializedObject) {
+export function deserialize({val, type}: SerializedObject, client: Client) {
+    console.log("deserializing: " + JSON.stringify(val));
     if ((type === "number") || (type === "string")) {
         return val;
     }
     if (type === "Array") {
-        return (<Array<SerializedObject>>val).map(deserialize);
+        return (<Array<SerializedObject>>val).map((v) => deserialize(v, client));
     }
     if (type === "object") {
         for (let key in val) {
-            val[key] = deserialize(val[key]);
+            val[key] = deserialize(val[key], client);
         }
         return val;
     }
     if (type === "Repliq") {
-        for (let key in val) {
-            val[key] = deserialize(val[key]);
+        let template = client.getTemplate(val.templateId);
+        if (!template) {
+            throw new Error("undefined template: " + val.templateId);
         }
-        return defineRepliq(val);
+        let obj = {};
+        for (let key in val.values) {
+            obj[key] = deserialize(val.values[key], client);
+        }
+        return client.create(template, obj);
     }
     if (type === "function") {
-        return
+        eval("var result = " + val);
+        return result;
     }
     if (type === "undefined") {
         return undefined;

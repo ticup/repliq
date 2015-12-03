@@ -165,15 +165,23 @@ describe("Repliq", () => {
 
     describe("Repliq Serlialization", () => {
         describe("base case", () => {
-            it("should", () => {
+            it("should", (done) => {
                 let FooRepliq = define({ foo: "bar", setFoo(val) { this.foo = val }});
                 let server = new Server(port);
-                server.create(FooRepliq, { foo: "foo" });
-                server.export({ identity: function (x) { return x } });
-
                 let client = new Client(host);
-                server.stop();
-                client.stop();
+
+                server.declare(FooRepliq);
+                client.declare(FooRepliq);
+
+                server.export({ identity: function (x) {
+                    return x;
+                }});
+                let r = client.create(FooRepliq, { foo: "foo" });
+                client.send("identity", r).then((r) => {
+                    server.stop();
+                    client.stop();
+                    done();
+                });
             });
         });
     });

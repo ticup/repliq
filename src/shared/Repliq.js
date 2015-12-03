@@ -53,20 +53,22 @@ var Repliq = (function () {
         Object.keys(defs).forEach(function (key) {
             var val = defs[key];
             if (typeof val !== "function") {
-                _this.committed[key] = defs[key];
-                _this.tentative[key] = defs[key];
+                _this.committed[key] = val;
+                _this.tentative[key] = val;
             }
         });
         Object.keys(args).forEach(function (key) {
             var val = args[key];
             if (typeof val !== "function") {
-                return args[key] = val;
+                _this.committed[key] = val;
+                _this.tentative[key] = val;
             }
-            _this.committed[key] = args[key];
-            _this.tentative[key] = args[key];
         });
         this.id = clientId + "@" + this.template.getId() + ":" + this.template.curId++;
     }
+    Repliq.prototype.getTemplate = function () {
+        return this.template;
+    };
     Repliq.prototype.getId = function () {
         return this.id;
     };

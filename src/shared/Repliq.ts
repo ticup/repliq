@@ -77,21 +77,25 @@ export class Repliq {
         Object.keys(defs).forEach((key) => {
             let val = defs[key];
             if (typeof val !== "function") {
-                this.committed[key] = defs[key];
-                this.tentative[key] = defs[key];
+                this.committed[key] = val;
+                this.tentative[key] = val;
             }
         });
 
         Object.keys(args).forEach((key) => {
             let val = args[key];
             if (typeof val !== "function") {
-                return args[key] = val;
+                this.committed[key] = val;
+                this.tentative[key] = val;
             }
-            this.committed[key] = args[key];
-            this.tentative[key] = args[key];
+
         });
 
         this.id = clientId + "@" + this.template.getId() + ":" + this.template.curId++;
+    }
+
+    getTemplate() {
+        return this.template;
     }
 
     getId() {

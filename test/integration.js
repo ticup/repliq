@@ -139,14 +139,21 @@ describe("Repliq", function () {
     });
     describe("Repliq Serlialization", function () {
         describe("base case", function () {
-            it("should", function () {
+            it("should", function (done) {
                 var FooRepliq = index_1.define({ foo: "bar", setFoo: function (val) { this.foo = val; } });
                 var server = new index_1.RepliqServer(port);
-                server.create(FooRepliq, { foo: "foo" });
-                server.export({ identity: function (x) { return x; } });
                 var client = new index_1.RepliqClient(host);
-                server.stop();
-                client.stop();
+                server.declare(FooRepliq);
+                client.declare(FooRepliq);
+                server.export({ identity: function (x) {
+                        return x;
+                    } });
+                var r = client.create(FooRepliq, { foo: "foo" });
+                client.send("identity", r).then(function (r) {
+                    server.stop();
+                    client.stop();
+                    done();
+                });
             });
         });
     });

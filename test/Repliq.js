@@ -34,7 +34,7 @@ describe("Unit Test * ", function () {
         });
     });
     describe("Repliq", function () {
-        var template = new Repliq_1.RepliqTemplate();
+        var template = new Repliq_1.RepliqTemplate({ foo: "bar" });
         describe("#new(template, clientId)", function () {
             var r = new Repliq_1.Repliq(template, "id");
             it("should return a Repliq object", function () {
@@ -49,10 +49,15 @@ describe("Unit Test * ", function () {
             });
         });
         describe("#new(template, clientId, props)", function () {
-            var props = { foo: "bar", setFoo: function (val) { this.foo = val; } };
             it("should return a Repliq object", function () {
+                var props = { foo: "foo" };
                 var r = new Repliq_1.Repliq(template, "id", props);
                 should(r).be.an.instanceOf(Repliq_1.Repliq);
+            });
+            it("should overwrite the default fields", function () {
+                var props = { foo: "foo" };
+                var r = new Repliq_1.Repliq(template, "id", props);
+                should.equal(r.get("foo"), "foo");
             });
         });
     });

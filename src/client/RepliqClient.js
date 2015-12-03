@@ -1,17 +1,21 @@
 /// <reference path="../shared/references.d.ts" />
 /// <reference path="../../typings/tsd.d.ts" />
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
 var Debug = require("debug");
 var io = require('socket.io-client');
-var com = require("../shared/Communication");
 var Promise = require("bluebird");
-var Repliq_1 = require("../shared/Repliq");
-var guid_1 = require("../shared/guid");
+var com = require("../shared/Communication");
+var Client_1 = require("../shared/Client");
 var debug = Debug("Repliq:com:client");
-var RepliqClient = (function () {
+var RepliqClient = (function (_super) {
+    __extends(RepliqClient, _super);
     function RepliqClient(host) {
         this.channel = io(host, { forceNew: true });
-        this.repliqs = {};
-        this.id = guid_1.guid();
+        _super.call(this);
     }
     RepliqClient.prototype.onConnect = function () {
         var _this = this;
@@ -36,19 +40,14 @@ var RepliqClient = (function () {
                 debug("received rpc result for " + selector + "(" + args + ") : " + result);
                 if (error)
                     return reject(error);
-                resolve(com.deserialize(ser));
+                resolve(com.deserialize(ser, _this));
             });
         });
     };
     RepliqClient.prototype.stop = function () {
         this.channel.close();
     };
-    RepliqClient.prototype.create = function (template, args) {
-        var repl = new Repliq_1.Repliq(template, args, this.id);
-        this.repliqs[repl.getId()] = repl;
-        return replw;
-    };
     return RepliqClient;
-})();
+})(Client_1.Client);
 exports.RepliqClient = RepliqClient;
 //# sourceMappingURL=RepliqClient.js.map

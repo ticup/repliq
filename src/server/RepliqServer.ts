@@ -4,25 +4,24 @@
 import * as Debug from "debug";
 import * as http from "http";
 import * as io from "socket.io";
+import * as guid from "node-uuid";
+
 import * as com from "../shared/Communication";
 import {RepliqTemplate, Repliq} from "../shared/Repliq";
+import {Client} from "../shared/Client";
 import {Listeners}  from "./Listeners";
 let debug = Debug("Repliq:com:server");
-import {guid} from "../shared/guid";
 
 
 export interface Api {
     [selector: string] : Function;
 }
 
-export class RepliqServer {
-    private id: string;
+export class RepliqServer extends Client {
 
     private channel: SocketIO.Server;
     private api: Api;
     private listeners: Listeners;
-
-    repliqs : Object;
 
     // http server or port number, which will create its own http server.
     constructor(app?: http.Server | number) {
@@ -44,11 +43,10 @@ export class RepliqServer {
         });
         this.listeners = new Listeners();
 
-        this.repliqs = {};
-        this.id = guid();
+        super();
     }
 
-    handleRpc(selector: string, sargs: Object[], reply: Function) {
+    handleRpc(selector: string, sargs: com.SerializedObject[], reply: Function) {
         debug("received rpc " + selector + "(" + sargs + ")");
         if (!this.api) {
             return reply("No exported API");
@@ -57,7 +55,7 @@ export class RepliqServer {
         if (!handler) {
             return reply("No compatible function for " + selector);
         }
-        let args = sargs.map(com.deserialize);
+        let args = sargs.map((a) => com.deserialize(a, this));
         let result = handler.apply(this.api, args);
         debug("result for rpc: " + result);
         reply(null, com.serialize(result));
@@ -78,11 +76,5 @@ export class RepliqServer {
             throw new Error("Cannot export multiple objects");
         }
         this.api = api;
-    }
-
-    create(template: RepliqTemplate, args) {
-        let repl = new Repliq(template, args, this.id);
-        this.repliqs[repl.getId()] = repl;
-        return replw;
     }
 }
