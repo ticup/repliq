@@ -1,4 +1,6 @@
 ///<reference path="../../typings/tsd.d.ts" />
+/// <reference path="references.d.ts" />
+var RepliqData_1 = require("./RepliqData");
 function computeHashString(str) {
     var hash = 0, i, chr, len;
     if (str.length == 0)
@@ -38,48 +40,44 @@ var RepliqTemplate = (function () {
     RepliqTemplate.prototype.getNextId = function () {
         return this.curId++;
     };
+    RepliqTemplate.prototype.getMethod = function (op) {
+        return this.methods[op];
+    };
     return RepliqTemplate;
 })();
 exports.RepliqTemplate = RepliqTemplate;
 var Repliq = (function () {
-    function Repliq(template, clientId, args) {
-        var _this = this;
-        if (args === void 0) { args = {}; }
+    function Repliq(template, args, clientId, manager, id) {
         this.template = template;
         this.clientId = clientId;
-        this.committed = {};
-        this.tentative = {};
-        var defs = this.template.defaults;
-        Object.keys(defs).forEach(function (key) {
-            var val = defs[key];
-            if (typeof val !== "function") {
-                _this.committed[key] = val;
-                _this.tentative[key] = val;
-            }
-        });
-        Object.keys(args).forEach(function (key) {
-            var val = args[key];
-            if (typeof val !== "function") {
-                _this.committed[key] = val;
-                _this.tentative[key] = val;
-            }
-        });
-        this.id = clientId + "@" + this.template.getId() + ":" + this.template.curId++;
+        this.manager = manager;
+        this.data = new RepliqData_1.RepliqData(this, manager, this.template.defaults, args);
+        this.id = id ? id : clientId + "@" + this.template.getId() + ":" + this.template.curId++;
     }
+    Repliq.prototype.get = function (key) {
+        return this.data.getTentative(key);
+    };
+    Repliq.prototype.set = function (key, val) {
+        this.call("set", key, val);
+    };
+    Repliq.prototype.getCommit = function (key) {
+        return this.data.getCommitted(key);
+    };
+    Repliq.prototype.call = function (op) {
+        var args = [];
+        for (var _i = 1; _i < arguments.length; _i++) {
+            args[_i - 1] = arguments[_i];
+        }
+        return this.manager.call(this, this.data, op, args);
+    };
     Repliq.prototype.getTemplate = function () {
         return this.template;
     };
     Repliq.prototype.getId = function () {
         return this.id;
     };
-    Repliq.prototype.get = function (key) {
-        return this.tentative[key];
-    };
-    Repliq.prototype.getCommit = function (key) {
-        return this.committed[key];
-    };
-    Repliq.prototype.commitKeys = function () {
-        return Object.keys(this.committed);
+    Repliq.prototype.committedKeys = function () {
+        return this.data.getCommittedKeys();
     };
     return Repliq;
 })();

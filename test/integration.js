@@ -1,5 +1,7 @@
 /// <reference path="../typings/tsd.d.ts" />
 /// <reference path="../src/index" />
+///<reference path="../src/shared/Repliq.ts"/>
+var Repliq_1 = require("../src/shared/Repliq");
 "use strict";
 var index_1 = require("../src/index");
 var http = require("http");
@@ -30,7 +32,7 @@ describe("Repliq", function () {
             });
         });
     });
-    describe("Client", function () {
+    describe("RepliqManager", function () {
         var server;
         var api = {
             noargs: function () { },
@@ -137,9 +139,27 @@ describe("Repliq", function () {
             });
         });
     });
-    describe("Repliq Serlialization", function () {
-        describe("base case", function () {
-            it("should", function (done) {
+    describe("Repliq Serialization", function () {
+        describe("sending it to the server", function () {
+            it("should get it as a Repliq object with given props", function (done) {
+                var FooRepliq = index_1.define({ foo: "bar", setFoo: function (val) { this.foo = val; } });
+                var server = new index_1.RepliqServer(port);
+                var client = new index_1.RepliqClient(host);
+                server.declare(FooRepliq);
+                client.declare(FooRepliq);
+                server.export({ fun: function (x) {
+                        should(x).be.an.instanceof(Repliq_1.Repliq);
+                        should(x.get("foo")).equal("foo");
+                        server.stop();
+                        client.stop();
+                        done();
+                    } });
+                var r = client.create(FooRepliq, { foo: "foo" });
+                client.send("fun", r);
+            });
+        });
+        describe("sending it to the server and back", function () {
+            it("should get it as a Repliq object", function (done) {
                 var FooRepliq = index_1.define({ foo: "bar", setFoo: function (val) { this.foo = val; } });
                 var server = new index_1.RepliqServer(port);
                 var client = new index_1.RepliqClient(host);
@@ -149,7 +169,8 @@ describe("Repliq", function () {
                         return x;
                     } });
                 var r = client.create(FooRepliq, { foo: "foo" });
-                client.send("identity", r).then(function (r) {
+                client.send("identity", r).then(function (r1) {
+                    should.equal(r, r1);
                     server.stop();
                     client.stop();
                     done();

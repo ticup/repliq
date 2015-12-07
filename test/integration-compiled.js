@@ -48,7 +48,7 @@ describe("Repliq", function () {
             });
         });
     });
-    describe("Client", function () {
+    describe("RepliqManager", function () {
         var server = undefined;
         var api = {
             noargs: function noargs() {},

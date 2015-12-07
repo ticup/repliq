@@ -28,7 +28,7 @@ function serialize(val) {
     if (type === "Object") {
         if (val instanceof _Repliq.Repliq) {
             var obj = {};
-            val.commitKeys().forEach(function (key) {
+            val.committedKeys().forEach(function (key) {
                 return obj[key] = val.getCommit(key);
             });
             return { val: obj, type: "Repliq" };

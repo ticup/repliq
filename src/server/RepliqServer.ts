@@ -8,7 +8,7 @@ import * as guid from "node-uuid";
 
 import * as com from "../shared/Communication";
 import {RepliqTemplate, Repliq} from "../shared/Repliq";
-import {Client} from "../shared/Client";
+import {RepliqManager} from "../shared/RepliqManager";
 import {Listeners}  from "./Listeners";
 let debug = Debug("Repliq:com:server");
 
@@ -17,7 +17,7 @@ export interface Api {
     [selector: string] : Function;
 }
 
-export class RepliqServer extends Client {
+export class RepliqServer extends RepliqManager {
 
     private channel: SocketIO.Server;
     private api: Api;

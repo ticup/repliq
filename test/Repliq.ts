@@ -5,15 +5,15 @@
 import {RepliqServer as Server,
     RepliqClient as Client, define}  from "../src/index";
 import {Repliq, RepliqTemplate} from "../src/shared/Repliq";
+import {RepliqManager} from "../src/shared/RepliqManager";
 import * as http from "http";
 import * as ioClient  from "socket.io-client";
 import * as ioServer from "socket.io";
 import * as should from "should";
 
 
-describe("Unit Test * ", () => {
+describe("Unit Test", () => {
     describe("RepliqTemplate", () => {
-
 
         describe("#new()", () => {
             it("should return a RepliqTemplate object", () => {
@@ -46,15 +46,16 @@ describe("Unit Test * ", () => {
 
 
     describe("Repliq", () => {
-        let template = new RepliqTemplate({foo:"bar"});
+        let template = new RepliqTemplate({foo:"bar", setFoo: function (val) { this.set("foo", val); return val; }});
+        let manager = new RepliqManager();
 
-        describe("#new(template, clientId)", () => {
-            let r = new Repliq(template, "id");
+        describe("#new(template, {}, clientId, manager)", () => {
+            let r = new Repliq(template, {}, "id", manager);
             it("should return a Repliq object", () => {
                 should(r).be.an.instanceOf(Repliq);
             });
             it("should produce a unique id", () => {
-                let r1 = new Repliq(template, "id");
+                let r1 = new Repliq(template, {}, "id", manager);
                 should.exist(r.getId());
                 console.log(r.getId());
                 should.equal(r.getId(), "id@" + template.getId() + ":0");
@@ -62,17 +63,25 @@ describe("Unit Test * ", () => {
             });
         });
 
-        describe("#new(template, clientId, props)", () => {
+        describe("#new(template, props, clientId)", () => {
             it("should return a Repliq object", () => {
                 let props = {foo:"foo"};
-                let r = new Repliq(template, "id", props);
+                let r = new Repliq(template, props, "id", manager);
                 should(r).be.an.instanceOf(Repliq);
             });
 
             it("should overwrite the default fields", () => {
                 let props = {foo:"foo"};
-                let r = new Repliq(template, "id", props);
+                let r = new Repliq(template, props, "id", manager);
                 should.equal(r.get("foo"), "foo");
+            });
+        });
+
+        describe("#call(op, ...args)", () => {
+            it("should call the op method with given args", () => {
+                let r = new Repliq(template, {}, "id", manager);
+                r.call("setFoo", "foo");
+                should(r.get("foo")).equal("foo");
             });
         });
     });

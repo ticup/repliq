@@ -1,5 +1,8 @@
 /// <reference path="../typings/tsd.d.ts" />
 /// <reference path="../src/index" />
+///<reference path="../src/shared/Repliq.ts"/>
+
+import {Repliq} from "../src/shared/Repliq";
 "use strict";
 import {RepliqServer as Server,
         RepliqClient as Client, define}  from "../src/index";
@@ -42,7 +45,7 @@ describe("Repliq", () => {
 
     });
 
-    describe("Client", () => {
+    describe("RepliqManager", () => {
 
         let server: Server;
 
@@ -163,9 +166,30 @@ describe("Repliq", () => {
         });
     });
 
-    describe("Repliq Serlialization", () => {
-        describe("base case", () => {
-            it("should", (done) => {
+    describe("Repliq Serialization", () => {
+        describe("sending it to the server", () => {
+            it("should get it as a Repliq object with given props", (done) => {
+                let FooRepliq = define({ foo: "bar", setFoo(val) { this.foo = val }});
+                let server = new Server(port);
+                let client = new Client(host);
+
+                server.declare(FooRepliq);
+                client.declare(FooRepliq);
+
+                server.export({ fun: function (x) {
+                    should(x).be.an.instanceof(Repliq);
+                    should(x.get("foo")).equal("foo");
+                    server.stop();
+                    client.stop();
+                    done();
+
+                }});
+                let r = client.create(FooRepliq, { foo: "foo" });
+                client.send("fun", r)
+            });
+        });
+        describe("sending it to the server and back", () => {
+            it("should get it as a Repliq object", (done) => {
                 let FooRepliq = define({ foo: "bar", setFoo(val) { this.foo = val }});
                 let server = new Server(port);
                 let client = new Client(host);
@@ -177,7 +201,8 @@ describe("Repliq", () => {
                     return x;
                 }});
                 let r = client.create(FooRepliq, { foo: "foo" });
-                client.send("identity", r).then((r) => {
+                client.send("identity", r).then((r1) => {
+                    should.equal(r, r1);
                     server.stop();
                     client.stop();
                     done();

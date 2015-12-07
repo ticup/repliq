@@ -9,7 +9,7 @@ var Debug = require("debug");
 var io = require('socket.io-client');
 var Promise = require("bluebird");
 var com = require("../shared/Communication");
-var Client_1 = require("../shared/Client");
+var RepliqManager_1 = require("../shared/RepliqManager");
 var debug = Debug("Repliq:com:client");
 var RepliqClient = (function (_super) {
     __extends(RepliqClient, _super);
@@ -33,8 +33,8 @@ var RepliqClient = (function (_super) {
             args[_i - 1] = arguments[_i];
         }
         return new Promise(function (resolve, reject) {
-            var rpc = { selector: selector, args: args.map(com.serialize) };
             debug("sending rpc " + selector + "(" + args + ")");
+            var rpc = { selector: selector, args: args.map(com.serialize) };
             _this.channel.emit("rpc", rpc, function (error, result) {
                 var ser = result;
                 debug("received rpc result for " + selector + "(" + args + ") : " + result);
@@ -48,6 +48,6 @@ var RepliqClient = (function (_super) {
         this.channel.close();
     };
     return RepliqClient;
-})(Client_1.Client);
+})(RepliqManager_1.RepliqManager);
 exports.RepliqClient = RepliqClient;
 //# sourceMappingURL=RepliqClient.js.map

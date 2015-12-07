@@ -31,7 +31,7 @@ var Repliq = exports.Repliq = (function () {
             return this.committed[key];
         }
     }, {
-        key: "commitKeys",
+        key: "committedKeys",
         value: function commitKeys() {
             return Object.keys(this.committed);
         }

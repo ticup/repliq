@@ -8,7 +8,7 @@ var __extends = (this && this.__extends) || function (d, b) {
 var Debug = require("debug");
 var io = require("socket.io");
 var com = require("../shared/Communication");
-var Client_1 = require("../shared/Client");
+var RepliqManager_1 = require("../shared/RepliqManager");
 var Listeners_1 = require("./Listeners");
 var debug = Debug("Repliq:com:server");
 var RepliqServer = (function (_super) {
@@ -60,6 +60,6 @@ var RepliqServer = (function (_super) {
         this.api = api;
     };
     return RepliqServer;
-})(Client_1.Client);
+})(RepliqManager_1.RepliqManager);
 exports.RepliqServer = RepliqServer;
 //# sourceMappingURL=RepliqServer.js.map

@@ -7,12 +7,12 @@ import * as io from 'socket.io-client';
 import * as Promise from "bluebird";
 
 import * as com from "../shared/Communication";
-import {Client} from "../shared/Client";
+import {RepliqManager} from "../shared/RepliqManager";
 
 import {RepliqTemplate, Repliq} from "../shared/Repliq";
 let debug = Debug("Repliq:com:client");
 
-export class RepliqClient extends Client {
+export class RepliqClient extends RepliqManager {
 
     channel : SocketIOClient.Socket;
 
@@ -32,8 +32,8 @@ export class RepliqClient extends Client {
 
     send(selector: string, ...args: Object[]) {
         return new Promise((resolve, reject) => {
-            let rpc = <com.RpcRequest> {selector, args: args.map(com.serialize)};
             debug("sending rpc " + selector + "(" + args + ")");
+            let rpc = <com.RpcRequest> {selector, args: args.map(com.serialize)};
             this.channel.emit("rpc", rpc, (error: string, result: Object) => {
                 let ser = <com.SerializedObject> result;
                 debug("received rpc result for " + selector + "(" + args + ") : " + result);

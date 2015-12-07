@@ -1,4 +1,8 @@
 ///<reference path="../../typings/tsd.d.ts" />
+/// <reference path="references.d.ts" />
+
+import {RepliqManager} from "./RepliqManager";
+import {RepliqData} from "./RepliqData";
 
 declare interface ProxyHandlerInterface<T> {
     get?: (target: T, property: string, receiver: T) => any;
@@ -56,43 +60,52 @@ export class RepliqTemplate {
     getNextId() {
         return this.curId++;
     }
+
+    getMethod(op) {
+        return this.methods[op];
+    }
 }
 
 export class Repliq {
     private id: string;
     private clientId: string;
-    private committed;
-    private tentative;
+
+    private manager: RepliqManager;
+    private data: RepliqData;
+
     private template;
 
-    constructor(template: RepliqTemplate, clientId, args = {}) {
+    constructor(template: RepliqTemplate, args, clientId: string, manager: RepliqManager, id?: string) {
         this.template = template;
         this.clientId = clientId;
+        this.manager = manager;
 
-        this.committed = {};
-        this.tentative = {};
+        this.data = new RepliqData(this, manager, this.template.defaults, args);
 
-
-        let defs = this.template.defaults;
-        Object.keys(defs).forEach((key) => {
-            let val = defs[key];
-            if (typeof val !== "function") {
-                this.committed[key] = val;
-                this.tentative[key] = val;
-            }
-        });
-
-        Object.keys(args).forEach((key) => {
-            let val = args[key];
-            if (typeof val !== "function") {
-                this.committed[key] = val;
-                this.tentative[key] = val;
-            }
-
-        });
-
-        this.id = clientId + "@" + this.template.getId() + ":" + this.template.curId++;
+        this.id = id ? id : clientId + "@" + this.template.getId() + ":" + this.template.curId++;
     }
+
+    // user interface:
+
+    get(key) {
+        return this.data.getTentative(key);
+    }
+
+    set(key, val) {
+        this.call("set", key, val);
+        //return this.data.setTentative(key, val);
+    }
+
+    getCommit(key) {
+        return this.data.getCommitted(key);
+    }
+
+    call(op, ...args) {
+        return this.manager.call(this, this.data, op, args);
+    }
+
+
+    // internals
 
     getTemplate() {
         return this.template;
@@ -102,16 +115,9 @@ export class Repliq {
         return this.id;
     }
 
-    get(key) {
-        return this.tentative[key];
-    }
 
-    getCommit(key) {
-        return this.committed[key];
-    }
-
-    commitKeys() {
-        return Object.keys(this.committed);
+    committedKeys() {
+        return this.data.getCommittedKeys();
     }
 }
 
