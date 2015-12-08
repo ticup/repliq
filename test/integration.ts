@@ -16,6 +16,12 @@ function stop(...args) {
     args.forEach((arg) => arg.stop());
 }
 
+let YIELD_DELAY = 400;
+
+function delay(f) {
+    setTimeout(f, YIELD_DELAY);
+}
+
 describe("Repliq", () => {
 
     let host = "http://localhost:3000";
@@ -216,7 +222,7 @@ describe("Repliq", () => {
         });
     });
 
-    describe("Logs", () => {
+    describe("Synchronization", () => {
         describe("yielding on client with object creation", () => {
             it("should create the object on the server", (done) => {
                 let FooRepliq = define({foo: "bar", setFoo(val) { this.set("foo", val); }});
@@ -237,8 +243,7 @@ describe("Repliq", () => {
                     should.exist(r2);
                     should.equal(r2.get("foo"), "foo");
                     stop(client, server); done();
-                }, 500);
-
+                }, YIELD_DELAY);
             });
         });
 
@@ -255,15 +260,60 @@ describe("Repliq", () => {
                     return x;
                 }});
                 let r = client.create(FooRepliq, { foo: "foo" });
-                r.call("setFoo", "bar");
+                r.call("setFoo", "rab");
                 client.yield();
                 setTimeout(() => {
                     server.yield();
                     let r2 = server.getRepliq(r.getId());
                     should.exist(r2);
-                    should.equal(r2.get("foo"), "bar");
+                    should.equal(r2.get("foo"), "rab");
                     stop(server, client); done();
-                }, 500);
+                }, YIELD_DELAY);
+            });
+        });
+
+        describe("creating a new repliq and introduce a reference for another client", () => {
+            it("should create the object on the client", (done) => {
+                let FooRepliq = define({foo: "bar", setFoo(val) { this.set("foo",val); }});
+                let server = new Server(port);
+                let client = new Client(host);
+                let client2 = new Client(host);
+
+                server.declare(FooRepliq);
+                client.declare(FooRepliq);
+                client2.declare(FooRepliq);
+
+                let s = server.create(FooRepliq, {  });
+                server.export({ getRepliq: function () {
+                    return s;
+                }});
+
+                server.yield();
+                //let r = client.create(FooRepliq, { foo: "foo" });
+                client.send("getRepliq").then((r: Repliq) => {
+                    client2.send("getRepliq").then((r2: Repliq) => {})
+                    let c = client.create(FooRepliq, {});
+                    c.call("setFoo", c);
+                    client.yield();
+
+                    delay(() => {
+                        server.yield();
+                        let r2 = server.getRepliq(c.getId());
+                        should.exist(r2);
+                        should(r2.get("foo")).be.an.instanceof(Repliq);
+                        //stop(server, client); done();
+
+                        delay(()=>{
+                            client2.yield();
+                            let val = r2.get("foo");
+                            should.exist(val);
+                            should(val).be.an.instanceof(Repliq);
+                            should.equal(val.getId(), c.getId());
+                            stop(server, client); done();
+                        });
+                    });
+                });
+
             });
         });
     });
