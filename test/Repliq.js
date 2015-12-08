@@ -34,37 +34,37 @@ describe("Unit Test", function () {
             });
         });
     });
-    describe("Repliq", function () {
+    describe("RepliqManager", function () {
         var template = new Repliq_1.RepliqTemplate({ foo: "bar", setFoo: function (val) { this.set("foo", val); return val; } });
         var manager = new RepliqManager_1.RepliqManager();
-        describe("#new(template, {}, clientId, manager)", function () {
-            var r = new Repliq_1.Repliq(template, {}, "id", manager);
+        describe("#create(template, args)", function () {
+            var r = manager.create(template, {});
             it("should return a Repliq object", function () {
                 should(r).be.an.instanceOf(Repliq_1.Repliq);
             });
             it("should produce a unique id", function () {
-                var r1 = new Repliq_1.Repliq(template, {}, "id", manager);
+                var r1 = manager.create(template, {});
                 should.exist(r.getId());
                 console.log(r.getId());
-                should.equal(r.getId(), "id@" + template.getId() + ":0");
-                should.equal(r1.getId(), "id@" + template.getId() + ":1");
+                should.equal(r.getId(), manager.getId() + "@" + template.getId() + ":0");
+                should.equal(r1.getId(), manager.getId() + "@" + template.getId() + ":1");
             });
         });
-        describe("#new(template, props, clientId)", function () {
+        describe("#create(template, args)", function () {
             it("should return a Repliq object", function () {
                 var props = { foo: "foo" };
-                var r = new Repliq_1.Repliq(template, props, "id", manager);
+                var r = manager.create(template, props);
                 should(r).be.an.instanceOf(Repliq_1.Repliq);
             });
             it("should overwrite the default fields", function () {
                 var props = { foo: "foo" };
-                var r = new Repliq_1.Repliq(template, props, "id", manager);
+                var r = manager.create(template, props);
                 should.equal(r.get("foo"), "foo");
             });
         });
         describe("#call(op, ...args)", function () {
             it("should call the op method with given args", function () {
-                var r = new Repliq_1.Repliq(template, {}, "id", manager);
+                var r = manager.create(template, {});
                 r.call("setFoo", "foo");
                 should(r.get("foo")).equal("foo");
             });

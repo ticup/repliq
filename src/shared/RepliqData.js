@@ -1,6 +1,6 @@
 /// <reference path="references.d.ts" />
 var RepliqData = (function () {
-    function RepliqData(repliq, manager, defs, args) {
+    function RepliqData(defs, args) {
         this.committed = {};
         this.tentative = {};
         this.init(defs);
@@ -35,6 +35,12 @@ var RepliqData = (function () {
         var _this = this;
         this.getKeys().forEach(function (key) {
             return _this.committed[key] = _this.tentative[key];
+        });
+    };
+    RepliqData.prototype.setToCommit = function () {
+        var _this = this;
+        this.getCommittedKeys().forEach(function (key) {
+            return _this.tentative[key] = _this.committed[key];
         });
     };
     return RepliqData;

@@ -10,7 +10,9 @@ var io = require("socket.io");
 var com = require("../shared/Communication");
 var RepliqManager_1 = require("../shared/RepliqManager");
 var Listeners_1 = require("./Listeners");
+var Round_1 = require("../shared/Round");
 var debug = Debug("Repliq:com:server");
+var locald = Debug("Repliq:server");
 var RepliqServer = (function (_super) {
     __extends(RepliqServer, _super);
     function RepliqServer(app) {
@@ -20,6 +22,9 @@ var RepliqServer = (function (_super) {
             debug("client connected");
             socket.on("rpc", function (rpc, reply) {
                 _this.handleRpc(rpc.selector, rpc.args, reply);
+            });
+            socket.on("YieldPull", function (json) {
+                _this.handleYieldPull(json);
             });
         });
         this.channel.on("disconnect", function (socket) {
@@ -41,10 +46,43 @@ var RepliqServer = (function (_super) {
         if (!handler) {
             return reply("No compatible function for " + selector);
         }
-        var args = sargs.map(function (a) { return com.deserialize(a, _this); });
+        var args = sargs.map(function (a) { return com.fromJSON(a, _this); });
         var result = handler.apply(this.api, args);
         debug("result for rpc: " + result);
-        reply(null, com.serialize(result));
+        reply(null, com.toJSON(result));
+    };
+    RepliqServer.prototype.handleYieldPull = function (json) {
+        debug("received round");
+        var round = Round_1.Round.fromJSON(json, this);
+        this.incoming.push(round);
+    };
+    RepliqServer.prototype.yield = function () {
+        var _this = this;
+        locald("yielding");
+        var rounds = [];
+        if (this.current.hasOperations()) {
+            locald("- adding current");
+            rounds.push(this.current);
+            this.current = this.newRound();
+        }
+        if (this.incoming.length > 0) {
+            locald("- adding incoming");
+            rounds = rounds.concat(this.incoming);
+            this.incoming = [];
+        }
+        if (rounds.length > 0) {
+            locald(rounds);
+            rounds.forEach(function (round) {
+                return _this.play(round);
+            });
+            this.forEachData(function (_, r) {
+                return r.commitValues();
+            });
+        }
+        rounds.forEach(function (round) { return _this.broadcastRound(round); });
+    };
+    RepliqServer.prototype.broadcastRound = function (round) {
+        this.channel.emit("YieldPush", round.toJSON());
     };
     RepliqServer.prototype.onConnect = function () {
         return new Promise(function (resolve) {

@@ -1,6 +1,5 @@
 ///<reference path="../../typings/tsd.d.ts" />
 /// <reference path="references.d.ts" />
-var RepliqData_1 = require("./RepliqData");
 function computeHashString(str) {
     var hash = 0, i, chr, len;
     if (str.length == 0)
@@ -47,11 +46,11 @@ var RepliqTemplate = (function () {
 })();
 exports.RepliqTemplate = RepliqTemplate;
 var Repliq = (function () {
-    function Repliq(template, args, clientId, manager, id) {
+    function Repliq(template, data, manager, clientId, id) {
         this.template = template;
         this.clientId = clientId;
         this.manager = manager;
-        this.data = new RepliqData_1.RepliqData(this, manager, this.template.defaults, args);
+        this.data = data;
         this.id = id ? id : clientId + "@" + this.template.getId() + ":" + this.template.curId++;
     }
     Repliq.prototype.get = function (key) {

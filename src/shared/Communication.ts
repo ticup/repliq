@@ -2,24 +2,25 @@
 
 import {Repliq, define as defineRepliq} from "./Repliq";
 import {RepliqManager} from "./RepliqManager";
+import {RepliqTemplate} from "./Repliq";
 
 export interface RpcRequest {
     selector: string;
-    args: SerializedObject[];
+    args: ValueJSON[];
 }
 
-export interface SerializedObject {
+export interface ValueJSON {
     val: any;
     type?: string;
 }
 
 export function serializeArgs(args: Object[]) {
-    return args.map(serialize);
+    return args.map(toJSON);
 }
 
 // Highly inefficient serialization/deserialization :)
 
-export function serialize(val: Object): SerializedObject {
+export function toJSON(val: Object): ValueJSON {
     let type = typeof val;
     if (type === "number") {
         return { val, type: "number" };
@@ -32,16 +33,19 @@ export function serialize(val: Object): SerializedObject {
     //}
     if (type === "object") {
         if (val instanceof Array) {
-            return { val: (<Array<Object>>val).map(serialize), type: "Array" };
+            return { val: (<Array<Object>>val).map(toJSON), type: "Array" };
         }
         if (val instanceof Repliq) {
             let obj = {id: val.getId(), values: {}, templateId: val.getTemplate().getId()};
-            val.committedKeys().forEach((key) => obj.values[key] = serialize(val.getCommit(key)));
+            val.committedKeys().forEach((key) => obj.values[key] = toJSON(val.getCommit(key)));
             return { val: obj, type: "Repliq" };
+        }
+        if (val instanceof RepliqTemplate) {
+            return { val: val.getId(), type: "RepliqTemplate" };
         }
         let obj = {};
         for (let key in val) {
-            obj[key] = serialize(val[key]);
+            obj[key] = toJSON(val[key]);
         }
         return { val: obj, type: "object" };
     }
@@ -52,17 +56,17 @@ export function serialize(val: Object): SerializedObject {
 }
 
 
-export function deserialize({val, type}: SerializedObject, client: RepliqManager) {
+export function fromJSON({val, type}: ValueJSON, client: RepliqManager) {
     console.log("deserializing: " + JSON.stringify(val));
     if ((type === "number") || (type === "string")) {
         return val;
     }
     if (type === "Array") {
-        return (<Array<SerializedObject>>val).map((v) => deserialize(v, client));
+        return (<Array<ValueJSON>>val).map((v) => fromJSON(v, client));
     }
     if (type === "object") {
         for (let key in val) {
-            val[key] = deserialize(val[key], client);
+            val[key] = fromJSON(val[key], client);
         }
         return val;
     }
@@ -76,9 +80,12 @@ export function deserialize({val, type}: SerializedObject, client: RepliqManager
         }
         let obj = {};
         for (let key in val.values) {
-            obj[key] = deserialize(val.values[key], client);
+            obj[key] = fromJSON(val.values[key], client);
         }
         return client.add(template, obj, val.id);
+    }
+    if (type === "RepliqTemplate") {
+        return client.getTemplate(val);
     }
     //if (type === "function") {
     //    eval("var result = " + val);

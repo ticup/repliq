@@ -35,7 +35,7 @@ function serialize(val) {
         }
         return { val: val, type: "Object" };
     }
-    throw new Error("unknown serialize value" + val);
+    throw new Error("unknown toJSON value" + val);
 }
 function deserialize(_ref) {
     var val = _ref.val;
@@ -59,7 +59,7 @@ function deserialize(_ref) {
         }
         return (0, _Repliq.defineRepliq)(val);
     }
-    throw new Error("unknown serialize value" + val);
+    throw new Error("unknown toJSON value" + val);
 }
 //# sourceMappingURL=Communication.js.map
 

@@ -8,6 +8,13 @@ var http = require("http");
 var ioClient = require("socket.io-client");
 var ioServer = require("socket.io");
 var should = require("should");
+function stop() {
+    var args = [];
+    for (var _i = 0; _i < arguments.length; _i++) {
+        args[_i - 0] = arguments[_i];
+    }
+    args.forEach(function (arg) { return arg.stop(); });
+}
 describe("Repliq", function () {
     var host = "http://localhost:3000";
     var port = 3000;
@@ -142,7 +149,7 @@ describe("Repliq", function () {
     describe("Repliq Serialization", function () {
         describe("sending it to the server", function () {
             it("should get it as a Repliq object with given props", function (done) {
-                var FooRepliq = index_1.define({ foo: "bar", setFoo: function (val) { this.foo = val; } });
+                var FooRepliq = index_1.define({ foo: "bar", setFoo: function (val) { this.set("foo", val); } });
                 var server = new index_1.RepliqServer(port);
                 var client = new index_1.RepliqClient(host);
                 server.declare(FooRepliq);
@@ -160,7 +167,7 @@ describe("Repliq", function () {
         });
         describe("sending it to the server and back", function () {
             it("should get it as a Repliq object", function (done) {
-                var FooRepliq = index_1.define({ foo: "bar", setFoo: function (val) { this.foo = val; } });
+                var FooRepliq = index_1.define({ foo: "bar", setFoo: function (val) { this.set("foo", val); } });
                 var server = new index_1.RepliqServer(port);
                 var client = new index_1.RepliqClient(host);
                 server.declare(FooRepliq);
@@ -175,6 +182,53 @@ describe("Repliq", function () {
                     client.stop();
                     done();
                 });
+            });
+        });
+    });
+    describe("Logs", function () {
+        describe("yielding on client with object creation", function () {
+            it("should create the object on the server", function (done) {
+                var FooRepliq = index_1.define({ foo: "bar", setFoo: function (val) { this.set("foo", val); } });
+                var server = new index_1.RepliqServer(port);
+                var client = new index_1.RepliqClient(host);
+                server.declare(FooRepliq);
+                client.declare(FooRepliq);
+                server.export({ identity: function (x) {
+                        return x;
+                    } });
+                var r = client.create(FooRepliq, { foo: "foo" });
+                client.yield();
+                setTimeout(function () {
+                    server.yield();
+                    var r2 = server.getRepliq(r.getId());
+                    should.exist(r2);
+                    should.equal(r2.get("foo"), "foo");
+                    stop(client, server);
+                    done();
+                }, 500);
+            });
+        });
+        describe("yielding on client with object creation and call", function () {
+            it("should create the object on the server", function (done) {
+                var FooRepliq = index_1.define({ foo: "bar", setFoo: function (val) { this.set("foo", val); } });
+                var server = new index_1.RepliqServer(port);
+                var client = new index_1.RepliqClient(host);
+                server.declare(FooRepliq);
+                client.declare(FooRepliq);
+                server.export({ identity: function (x) {
+                        return x;
+                    } });
+                var r = client.create(FooRepliq, { foo: "foo" });
+                r.call("setFoo", "bar");
+                client.yield();
+                setTimeout(function () {
+                    server.yield();
+                    var r2 = server.getRepliq(r.getId());
+                    should.exist(r2);
+                    should.equal(r2.get("foo"), "bar");
+                    stop(server, client);
+                    done();
+                }, 500);
             });
         });
     });

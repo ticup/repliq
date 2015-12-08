@@ -3,6 +3,7 @@
 
 import {RepliqManager} from "./RepliqManager";
 import {RepliqData} from "./RepliqData";
+import {ClientId} from "./Types";
 
 declare interface ProxyHandlerInterface<T> {
     get?: (target: T, property: string, receiver: T) => any;
@@ -32,7 +33,7 @@ function computeHash(obj: Object): number {
 export class RepliqTemplate {
     private id: number;
     private methods;
-    private defaults;
+    public defaults;
 
     private curId: number;
 
@@ -75,12 +76,11 @@ export class Repliq {
 
     private template;
 
-    constructor(template: RepliqTemplate, args, clientId: string, manager: RepliqManager, id?: string) {
+    constructor(template: RepliqTemplate, data: RepliqData, manager: RepliqManager,  clientId: ClientId, id?: string) {
         this.template = template;
         this.clientId = clientId;
         this.manager = manager;
-
-        this.data = new RepliqData(this, manager, this.template.defaults, args);
+        this.data = data;
 
         this.id = id ? id : clientId + "@" + this.template.getId() + ":" + this.template.curId++;
     }

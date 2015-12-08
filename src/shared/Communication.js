@@ -1,10 +1,11 @@
 ///<reference path="./references.d.ts" />
 var Repliq_1 = require("./Repliq");
+var Repliq_2 = require("./Repliq");
 function serializeArgs(args) {
-    return args.map(serialize);
+    return args.map(toJSON);
 }
 exports.serializeArgs = serializeArgs;
-function serialize(val) {
+function toJSON(val) {
     var type = typeof val;
     if (type === "number") {
         return { val: val, type: "number" };
@@ -14,16 +15,19 @@ function serialize(val) {
     }
     if (type === "object") {
         if (val instanceof Array) {
-            return { val: val.map(serialize), type: "Array" };
+            return { val: val.map(toJSON), type: "Array" };
         }
         if (val instanceof Repliq_1.Repliq) {
             var obj_1 = { id: val.getId(), values: {}, templateId: val.getTemplate().getId() };
-            val.committedKeys().forEach(function (key) { return obj_1.values[key] = serialize(val.getCommit(key)); });
+            val.committedKeys().forEach(function (key) { return obj_1.values[key] = toJSON(val.getCommit(key)); });
             return { val: obj_1, type: "Repliq" };
+        }
+        if (val instanceof Repliq_2.RepliqTemplate) {
+            return { val: val.getId(), type: "RepliqTemplate" };
         }
         var obj = {};
         for (var key in val) {
-            obj[key] = serialize(val[key]);
+            obj[key] = toJSON(val[key]);
         }
         return { val: obj, type: "object" };
     }
@@ -32,19 +36,19 @@ function serialize(val) {
     }
     throw new Error("unknown serialize value: " + val);
 }
-exports.serialize = serialize;
-function deserialize(_a, client) {
+exports.toJSON = toJSON;
+function fromJSON(_a, client) {
     var val = _a.val, type = _a.type;
     console.log("deserializing: " + JSON.stringify(val));
     if ((type === "number") || (type === "string")) {
         return val;
     }
     if (type === "Array") {
-        return val.map(function (v) { return deserialize(v, client); });
+        return val.map(function (v) { return fromJSON(v, client); });
     }
     if (type === "object") {
         for (var key in val) {
-            val[key] = deserialize(val[key], client);
+            val[key] = fromJSON(val[key], client);
         }
         return val;
     }
@@ -58,14 +62,17 @@ function deserialize(_a, client) {
         }
         var obj = {};
         for (var key in val.values) {
-            obj[key] = deserialize(val.values[key], client);
+            obj[key] = fromJSON(val.values[key], client);
         }
         return client.add(template, obj, val.id);
+    }
+    if (type === "RepliqTemplate") {
+        return client.getTemplate(val);
     }
     if (type === "undefined") {
         return undefined;
     }
     throw new Error("unknown serialize value" + val);
 }
-exports.deserialize = deserialize;
+exports.fromJSON = fromJSON;
 //# sourceMappingURL=Communication.js.map

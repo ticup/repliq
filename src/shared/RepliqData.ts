@@ -7,7 +7,7 @@ export class RepliqData {
     private committed;
     private tentative;
 
-    constructor(repliq: Repliq, manager: RepliqManager, defs: Object, args: Object) {
+    constructor(defs: Object, args: Object) {
         this.committed = {};
         this.tentative = {};
         this.init(defs);
@@ -46,8 +46,12 @@ export class RepliqData {
 
     commitValues() {
         this.getKeys().forEach((key) =>
-            this.committed[key] = this.tentative[key]
-        );
+            this.committed[key] = this.tentative[key]);
+    }
+
+    setToCommit() {
+        this.getCommittedKeys().forEach((key) =>
+            this.tentative[key] = this.committed[key]);
     }
 
 }

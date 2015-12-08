@@ -11,6 +11,11 @@ import * as ioClient  from "socket.io-client";
 import * as ioServer from "socket.io";
 import * as should from "should";
 
+
+function stop(...args) {
+    args.forEach((arg) => arg.stop());
+}
+
 describe("Repliq", () => {
 
     let host = "http://localhost:3000";
@@ -169,7 +174,7 @@ describe("Repliq", () => {
     describe("Repliq Serialization", () => {
         describe("sending it to the server", () => {
             it("should get it as a Repliq object with given props", (done) => {
-                let FooRepliq = define({ foo: "bar", setFoo(val) { this.foo = val }});
+                let FooRepliq = define({ foo: "bar", setFoo(val) { this.set("foo", val); }});
                 let server = new Server(port);
                 let client = new Client(host);
 
@@ -190,7 +195,7 @@ describe("Repliq", () => {
         });
         describe("sending it to the server and back", () => {
             it("should get it as a Repliq object", (done) => {
-                let FooRepliq = define({ foo: "bar", setFoo(val) { this.foo = val }});
+                let FooRepliq = define({foo: "bar", setFoo(val) { this.set("foo", val); }});
                 let server = new Server(port);
                 let client = new Client(host);
 
@@ -207,6 +212,58 @@ describe("Repliq", () => {
                     client.stop();
                     done();
                 });
+            });
+        });
+    });
+
+    describe("Logs", () => {
+        describe("yielding on client with object creation", () => {
+            it("should create the object on the server", (done) => {
+                let FooRepliq = define({foo: "bar", setFoo(val) { this.set("foo", val); }});
+                let server = new Server(port);
+                let client = new Client(host);
+
+                server.declare(FooRepliq);
+                client.declare(FooRepliq);
+
+                server.export({ identity: function (x) {
+                    return x;
+                }});
+                let r = client.create(FooRepliq, { foo: "foo" });
+                client.yield();
+                setTimeout(() => {
+                    server.yield();
+                    let r2 = server.getRepliq(r.getId());
+                    should.exist(r2);
+                    should.equal(r2.get("foo"), "foo");
+                    stop(client, server); done();
+                }, 500);
+
+            });
+        });
+
+        describe("yielding on client with object creation and call", () => {
+            it("should create the object on the server", (done) => {
+                let FooRepliq = define({foo: "bar", setFoo(val) { this.set("foo",val); }});
+                let server = new Server(port);
+                let client = new Client(host);
+
+                server.declare(FooRepliq);
+                client.declare(FooRepliq);
+
+                server.export({ identity: function (x) {
+                    return x;
+                }});
+                let r = client.create(FooRepliq, { foo: "foo" });
+                r.call("setFoo", "bar");
+                client.yield();
+                setTimeout(() => {
+                    server.yield();
+                    let r2 = server.getRepliq(r.getId());
+                    should.exist(r2);
+                    should.equal(r2.get("foo"), "bar");
+                    stop(server, client); done();
+                }, 500);
             });
         });
     });

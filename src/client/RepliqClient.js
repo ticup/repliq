@@ -10,11 +10,13 @@ var io = require('socket.io-client');
 var Promise = require("bluebird");
 var com = require("../shared/Communication");
 var RepliqManager_1 = require("../shared/RepliqManager");
+var Operation_1 = require("../shared/Operation");
 var debug = Debug("Repliq:com:client");
 var RepliqClient = (function (_super) {
     __extends(RepliqClient, _super);
     function RepliqClient(host) {
         this.channel = io(host, { forceNew: true });
+        this.incoming = [];
         _super.call(this);
     }
     RepliqClient.prototype.onConnect = function () {
@@ -34,18 +36,44 @@ var RepliqClient = (function (_super) {
         }
         return new Promise(function (resolve, reject) {
             debug("sending rpc " + selector + "(" + args + ")");
-            var rpc = { selector: selector, args: args.map(com.serialize) };
+            var rpc = { selector: selector, args: args.map(com.toJSON) };
             _this.channel.emit("rpc", rpc, function (error, result) {
                 var ser = result;
                 debug("received rpc result for " + selector + "(" + args + ") : " + result);
                 if (error)
                     return reject(error);
-                resolve(com.deserialize(ser, _this));
+                resolve(com.fromJSON(ser, _this));
             });
         });
     };
     RepliqClient.prototype.stop = function () {
         this.channel.close();
+    };
+    RepliqClient.prototype.create = function (template, args) {
+        var r = _super.prototype.create.call(this, template, args);
+        this.current.add(new Operation_1.Operation(undefined, "CreateRepliq", [template, r.getId()].concat(args)));
+        return r;
+    };
+    RepliqClient.prototype.yield = function () {
+        var _this = this;
+        if (this.current.hasOperations()) {
+            var round = this.current;
+            this.pending.push(round);
+            this.current = this.newRound();
+            this.channel.emit("YieldPull", round.toJSON());
+        }
+        this.forEachData(function (_, r) {
+            return r.setToCommit();
+        });
+        this.incoming.forEach(function (round) {
+            return _this.play(round);
+        });
+        this.forEachData(function (_, r) {
+            return r.commitValues();
+        });
+        this.pending.forEach(function (round) {
+            return _this.play(round);
+        });
     };
     return RepliqClient;
 })(RepliqManager_1.RepliqManager);
