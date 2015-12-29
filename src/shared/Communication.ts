@@ -1,8 +1,8 @@
 ///<reference path="./references.d.ts" />
 
-import {Repliq, define as defineRepliq} from "./Repliq";
+import {Repliq, sync} from "./Repliq";
 import {RepliqManager} from "./RepliqManager";
-import {RepliqTemplate} from "./Repliq";
+import {List} from "immutable";
 
 export interface RpcRequest {
     selector: string;
@@ -28,10 +28,17 @@ export function toJSON(val: Object): ValueJSON {
     if (type === "string") {
         return { val, type: "string" };
     }
+    if (type === "boolean") {
+        return {val, type: "boolean"};
+    }
     //if (type === "function") {
     //    return {val: val.toString(), type: "function" };
     //}
     if (type === "object") {
+        if (val instanceof List) {
+            console.log((<List<any>>val).toArray());
+            return { val: (<List<any>>val).toArray().map(toJSON), type: "Array" };
+        }
         if (val instanceof Array) {
             return { val: (<Array<Object>>val).map(toJSON), type: "Array" };
         }
@@ -40,8 +47,8 @@ export function toJSON(val: Object): ValueJSON {
             val.committedKeys().forEach((key) => obj.values[key] = toJSON(val.getCommit(key)));
             return { val: obj, type: "Repliq" };
         }
-        if (val instanceof RepliqTemplate) {
-            return { val: val.getId(), type: "RepliqTemplate" };
+        if (typeof val["isRepliq"] !== "undefined" && val["isRepliq"]) {
+            return { val: (<any>val).getId(), type: "RepliqTemplate" };
         }
         let obj = {};
         for (let key in val) {
@@ -52,17 +59,18 @@ export function toJSON(val: Object): ValueJSON {
     if (type === "undefined") {
         return {val, type: "undefined" };
     }
+
     throw new Error("unknown serialize value: " + val);
 }
 
 
 export function fromJSON({val, type}: ValueJSON, client: RepliqManager) {
     console.log("deserializing: " + JSON.stringify(val));
-    if ((type === "number") || (type === "string")) {
+    if ((type === "number") || (type === "string") || (type === "boolean")) {
         return val;
     }
     if (type === "Array") {
-        return (<Array<ValueJSON>>val).map((v) => fromJSON(v, client));
+        return List((<Array<ValueJSON>>val).map((v) => fromJSON(v, client)));
     }
     if (type === "object") {
         for (let key in val) {

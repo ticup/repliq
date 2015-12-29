@@ -1,6 +1,6 @@
 ///<reference path="./references.d.ts" />
 var Repliq_1 = require("./Repliq");
-var Repliq_2 = require("./Repliq");
+var immutable_1 = require("immutable");
 function serializeArgs(args) {
     return args.map(toJSON);
 }
@@ -13,7 +13,14 @@ function toJSON(val) {
     if (type === "string") {
         return { val: val, type: "string" };
     }
+    if (type === "boolean") {
+        return { val: val, type: "boolean" };
+    }
     if (type === "object") {
+        if (val instanceof immutable_1.List) {
+            console.log(val.toArray());
+            return { val: val.toArray().map(toJSON), type: "Array" };
+        }
         if (val instanceof Array) {
             return { val: val.map(toJSON), type: "Array" };
         }
@@ -22,7 +29,7 @@ function toJSON(val) {
             val.committedKeys().forEach(function (key) { return obj_1.values[key] = toJSON(val.getCommit(key)); });
             return { val: obj_1, type: "Repliq" };
         }
-        if (val instanceof Repliq_2.RepliqTemplate) {
+        if (typeof val["isRepliq"] !== "undefined" && val["isRepliq"]) {
             return { val: val.getId(), type: "RepliqTemplate" };
         }
         var obj = {};
@@ -40,11 +47,11 @@ exports.toJSON = toJSON;
 function fromJSON(_a, client) {
     var val = _a.val, type = _a.type;
     console.log("deserializing: " + JSON.stringify(val));
-    if ((type === "number") || (type === "string")) {
+    if ((type === "number") || (type === "string") || (type === "boolean")) {
         return val;
     }
     if (type === "Array") {
-        return val.map(function (v) { return fromJSON(v, client); });
+        return immutable_1.List(val.map(function (v) { return fromJSON(v, client); }));
     }
     if (type === "object") {
         for (var key in val) {

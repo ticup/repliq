@@ -1,9 +1,8 @@
 /// <reference path="references.d.ts" />
 var RepliqData = (function () {
-    function RepliqData(defs, args) {
+    function RepliqData(args) {
         this.committed = {};
         this.tentative = {};
-        this.init(defs);
         this.init(args);
     }
     RepliqData.prototype.init = function (props) {
@@ -15,6 +14,12 @@ var RepliqData = (function () {
                 _this.tentative[key] = val;
             }
         });
+    };
+    RepliqData.prototype.get = function (key) {
+        return this.getTentative(key);
+    };
+    RepliqData.prototype.set = function (key, val) {
+        return this.setTentative(key, val);
     };
     RepliqData.prototype.getTentative = function (key) {
         return this.tentative[key];

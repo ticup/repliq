@@ -7,10 +7,9 @@ export class RepliqData {
     private committed;
     private tentative;
 
-    constructor(defs: Object, args: Object) {
+    constructor(args: Object) {
         this.committed = {};
         this.tentative = {};
-        this.init(defs);
         this.init(args);
     }
 
@@ -24,6 +23,14 @@ export class RepliqData {
         });
     }
 
+    get(key) {
+        return this.getTentative(key);
+    }
+
+    set(key, val) {
+        return this.setTentative(key, val);
+    }
+
     getTentative(key) {
         return this.tentative[key];
     }
@@ -31,6 +38,7 @@ export class RepliqData {
     setTentative(key, val) {
         return this.tentative[key] = val;
     }
+
 
     getKeys() {
         return Object.keys(this.tentative);

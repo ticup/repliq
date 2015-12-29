@@ -5,7 +5,7 @@
 import {Repliq} from "../src/shared/Repliq";
 "use strict";
 import {RepliqServer as Server,
-        RepliqClient as Client, define}  from "../src/index";
+        RepliqClient as Client}  from "../src/index";
 import * as http from "http";
 import * as ioClient  from "socket.io-client";
 import * as ioServer from "socket.io";
@@ -180,7 +180,12 @@ describe("Repliq", () => {
     describe("Repliq Serialization", () => {
         describe("sending it to the server", () => {
             it("should get it as a Repliq object with given props", (done) => {
-                let FooRepliq = define({ foo: "bar", setFoo(val) { this.set("foo", val); }});
+                class FooRepliq extends Repliq{
+                    public foo = "bar";
+                    setFoo(val) {
+                        this.set("foo", val);
+                        return val;
+                    }};
                 let server = new Server(port);
                 let client = new Client(host);
 
@@ -201,7 +206,12 @@ describe("Repliq", () => {
         });
         describe("sending it to the server and back", () => {
             it("should get it as a Repliq object", (done) => {
-                let FooRepliq = define({foo: "bar", setFoo(val) { this.set("foo", val); }});
+                class FooRepliq extends Repliq{
+                    public foo = "bar";
+                    setFoo(val) {
+                        this.set("foo", val);
+                        return val;
+                    }};
                 let server = new Server(port);
                 let client = new Client(host);
 
@@ -225,7 +235,12 @@ describe("Repliq", () => {
     describe("Synchronization", () => {
         describe("yielding on client with object creation", () => {
             it("should create the object on the server", (done) => {
-                let FooRepliq = define({foo: "bar", setFoo(val) { this.set("foo", val); }});
+                class FooRepliq extends Repliq{
+                    public foo = "bar";
+                    setFoo(val) {
+                        this.set("foo", val);
+                        return val;
+                    }};
                 let server = new Server(port);
                 let client = new Client(host);
 
@@ -249,7 +264,12 @@ describe("Repliq", () => {
 
         describe("yielding on client with object creation and call", () => {
             it("should create the object on the server", (done) => {
-                let FooRepliq = define({foo: "bar", setFoo(val) { this.set("foo",val); }});
+                class FooRepliq extends Repliq{
+                    public foo = "bar";
+                    setFoo(val) {
+                        this.set("foo", val);
+                        return val;
+                    }};
                 let server = new Server(port);
                 let client = new Client(host);
 
@@ -274,7 +294,12 @@ describe("Repliq", () => {
 
         describe("creating a new repliq and introduce a reference for another client", () => {
             it("should create the object on the client", (done) => {
-                let FooRepliq = define({foo: "bar", setFoo(val) { this.set("foo",val); }});
+                class FooRepliq extends Repliq{
+                    public foo = "bar";
+                    setFoo(val) {
+                        this.set("foo", val);
+                        return val;
+                    }};
                 let server = new Server(port);
                 let client = new Client(host);
                 let client2 = new Client(host);
@@ -316,5 +341,6 @@ describe("Repliq", () => {
 
             });
         });
+
     });
 });

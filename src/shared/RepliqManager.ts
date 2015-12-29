@@ -1,7 +1,7 @@
 /// <reference path="references.d.ts" />
 /// <reference path="../../typings/tsd.d.ts" />
 
-import {RepliqTemplate, Repliq} from "./Repliq";
+import {Repliq} from "./Repliq";
 import {Operation} from "./Operation";
 import {Round} from "./Round";
 import * as Debug from "debug";
@@ -13,6 +13,10 @@ let debug = Debug("Repliq:local");
 
 export interface RepliqDataIterator {
     (key: string, value: RepliqData): void;
+}
+
+export interface RepliqTemplateMap {
+    [name: string] : typeof Repliq;
 }
 
 export class RepliqManager {
@@ -32,7 +36,7 @@ export class RepliqManager {
 
     protected incoming : Round[];
 
-    constructor() {
+    constructor(schema?: RepliqTemplateMap) {
         this.id = guid.v4();
         this.roundNr = 0;
         this.templates = {};
@@ -42,6 +46,9 @@ export class RepliqManager {
         this.pending = [];
         this.confirmed =[];
         this.incoming = [];
+        if (schema) {
+            this.declareAll(schema);
+        }
     }
 
     getId(): ClientId {
@@ -52,21 +59,27 @@ export class RepliqManager {
         Object.keys(this.repliqsData).forEach((key)=>f(key, this.repliqsData[key]));
     }
 
-    declare(template: RepliqTemplate) {
+    declare(template: typeof Repliq) {
+        template.id = computeHash(template);
         this.templates[template.getId()] = template;
     }
 
-    create(template: RepliqTemplate, args) {
-        let data = new RepliqData(template.defaults, args);
-        let repl = new Repliq(template, data, this, this.id);
+    declareAll(templates: RepliqTemplateMap) {
+        Object.keys(templates).forEach((key) => this.declare(templates[key]));
+    }
+
+
+    create(template: typeof Repliq, args = {})  {
+        let data = new RepliqData(args);
+        let repl = new template(template, data, this, this.id);
         this.repliqs[repl.getId()] = repl;
         this.repliqsData[repl.getId()] = data;
         return repl;
     }
 
-    add(template: RepliqTemplate, args, id: string) {
-        let data = new RepliqData(template.defaults, args);
-        let repl = new Repliq(template, data, this, this.id, id);
+    add(template: typeof Repliq, args, id: string) {
+        let data = new RepliqData(args);
+        let repl = new template(template, data, this, this.id, id);
         this.repliqs[repl.getId()] = repl;
         this.repliqsData[repl.getId()] = data;
         return repl;
@@ -85,25 +98,27 @@ export class RepliqManager {
     }
 
 
-    call(repliq: Repliq, data: RepliqData, selector: string, args) {
+    call(repliq: Repliq, data: RepliqData, selector: string, fun: Function, args) {
         debug("calling " + selector + "(" + args + ")");
         let startReplay = false;
-        let fun = (selector == "set") ? (() => { console.log('calling set'); data.setTentative(args[0], args[1])}) : repliq.getTemplate().getMethod(selector);
-        if (!fun) {
-            throw new Error("Undefined method " + selector + " in " + repliq);
-        }
-        if (this.replaying) {
-            if (repliq !== this.replaying) {
-                throw new Error("Cannot call repliq method from within another repliq method");
-            }
-        } else {
+        //var fun = repliq.getMethod(selector);
+        //if (!fun) {
+        //    throw new Error("Undefined method " + selector + " in " + repliq);
+        //}
+        //if (this.replaying) {
+        //    if (repliq !== this.replaying) {
+        //        throw new Error("Cannot call repliq method from within another repliq method");
+        //    }
+        //} else {
+        if (!this.replaying) {
             startReplay = true;
             this.current.add(new Operation(repliq.getId(), selector, args));
             this.replaying = repliq;
         }
-        let res = fun.apply(repliq, args);
+        let res = fun.apply(data, args);
         if (startReplay) {
             this.replaying = undefined;
+            //this.notifyChanged();
         }
         return res;
 
@@ -122,22 +137,48 @@ export class RepliqManager {
     }
 
     protected play(round: Round) {
-        debug("playing round " + round.getNr() + " (" + round.operations.length + ")");
+        debug("playing round " + round.getOriginNr() + " (" + round.operations.length + ")");
         round.operations.forEach((op: Operation) => {
             debug(op.targetId + " . " + op.selector);
             if (op.targetId === undefined) {
                 this.execute(op.selector, op.args)
             } else {
-                this.call(this.getRepliq(op.targetId), this.getRepliqData(op.targetId), op.selector, op.args);
+                let rep = this.getRepliq(op.targetId);
+                rep[op.selector].call(rep, op.args);
             }
         });
     }
 
 
     protected newRound() {
-        return new Round(this.roundNr++, this.getId());
+        return new Round(this.newRoundNr(), this.getId());
+    }
+
+    protected newRoundNr() {
+        return this.roundNr++;
     }
 
 
+    public notifyChanged() {
 
+    }
+
+
+}
+
+
+function computeHashString(str: string): number {
+    var hash = 0, i, chr, len;
+    if (str.length == 0) return hash;
+    for (i = 0, len = str.length; i < len; i++) {
+        chr   = str.charCodeAt(i);
+        hash  = ((hash << 5) - hash) + chr;
+        hash |= 0; // Convert to 32bit integer
+    }
+    return hash;
+}
+
+function computeHash(obj: Object): number {
+    let str = Object.keys(obj).reduce((acc, key) => (acc + key + obj[key].toString()), "");
+    return computeHashString(str);
 }

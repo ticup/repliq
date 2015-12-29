@@ -14,10 +14,10 @@ var Operation_1 = require("../shared/Operation");
 var debug = Debug("Repliq:com:client");
 var RepliqClient = (function (_super) {
     __extends(RepliqClient, _super);
-    function RepliqClient(host) {
+    function RepliqClient(host, schema) {
         this.channel = io(host, { forceNew: true });
         this.incoming = [];
-        _super.call(this);
+        _super.call(this, schema);
     }
     RepliqClient.prototype.onConnect = function () {
         var _this = this;
@@ -41,7 +41,7 @@ var RepliqClient = (function (_super) {
                 var ser = result;
                 debug("received rpc result for " + selector + "(" + args + ") : " + result);
                 if (error)
-                    return reject(error);
+                    return reject(new Error(error));
                 resolve(com.fromJSON(ser, _this));
             });
         });
@@ -66,7 +66,10 @@ var RepliqClient = (function (_super) {
             return r.setToCommit();
         });
         this.incoming.forEach(function (round) {
-            return _this.play(round);
+            _this.play(round);
+            if (round.getOriginId() == _this.getId()) {
+                _this.pending = _this.pending.slice(1);
+            }
         });
         this.forEachData(function (_, r) {
             return r.commitValues();

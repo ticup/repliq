@@ -6,25 +6,36 @@ import {toJSON, fromJSON} from "./Communication";
 import {RepliqManager} from "./RepliqManager";
 
 export interface RoundJSON {
-    nr: number;
-    clientId: ClientId;
+    originNr: number;
+    serverNr: number;
+    originId: ClientId;
     operations: OperationJSON[];
 }
 
 export class Round {
-    private nr : number;
-    private clientId   : ClientId;
+    private originNr : number;
+    private serverNr : number;
+    private originId : ClientId;
     public operations : Operation[];
 
-    constructor (nr: number, clientId: ClientId, operations = []) {
-        this.nr         = nr;
-        this.clientId   = clientId;
+    constructor (originNr: number, originId: ClientId, serverNr = -1, operations = []) {
+        this.serverNr   = -1;
+        this.originNr   = originNr;
+        this.originId   = originId;
         this.operations = operations;
 
     }
 
-    getNr() {
-        return this.nr;
+    getOriginId() {
+        return this.originId;
+    }
+
+    getOriginNr() {
+        return this.originNr;
+    }
+
+    setServerNr(nr: number) {
+        this.serverNr = nr;
     }
 
     add(operation: Operation) {
@@ -38,16 +49,18 @@ export class Round {
 
     toJSON(): RoundJSON {
         return {
-            nr: this.nr,
-            clientId: this.clientId,
+            serverNr: this.serverNr,
+            originNr: this.originNr,
+            originId: this.originId,
             operations: this.operations.map((op) => op.toJSON())
         }
     }
 
     public static fromJSON(json: RoundJSON, manager: RepliqManager) {
         return new Round(
-            json.nr,
-            json.clientId,
+            json.originNr,
+            json.originId,
+            json.serverNr,
             json.operations.map((op) => Operation.fromJSON(op, manager)));
     }
 }

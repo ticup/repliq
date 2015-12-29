@@ -1,6 +1,11 @@
 /// <reference path="../typings/tsd.d.ts" />
 /// <reference path="../src/index" />
 ///<reference path="../src/shared/Repliq.ts"/>
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
 var Repliq_1 = require("../src/shared/Repliq");
 "use strict";
 var index_1 = require("../src/index");
@@ -153,7 +158,19 @@ describe("Repliq", function () {
     describe("Repliq Serialization", function () {
         describe("sending it to the server", function () {
             it("should get it as a Repliq object with given props", function (done) {
-                var FooRepliq = index_1.define({ foo: "bar", setFoo: function (val) { this.set("foo", val); } });
+                var FooRepliq = (function (_super) {
+                    __extends(FooRepliq, _super);
+                    function FooRepliq() {
+                        _super.apply(this, arguments);
+                        this.foo = "bar";
+                    }
+                    FooRepliq.prototype.setFoo = function (val) {
+                        this.set("foo", val);
+                        return val;
+                    };
+                    return FooRepliq;
+                })(Repliq_1.Repliq);
+                ;
                 var server = new index_1.RepliqServer(port);
                 var client = new index_1.RepliqClient(host);
                 server.declare(FooRepliq);
@@ -171,7 +188,19 @@ describe("Repliq", function () {
         });
         describe("sending it to the server and back", function () {
             it("should get it as a Repliq object", function (done) {
-                var FooRepliq = index_1.define({ foo: "bar", setFoo: function (val) { this.set("foo", val); } });
+                var FooRepliq = (function (_super) {
+                    __extends(FooRepliq, _super);
+                    function FooRepliq() {
+                        _super.apply(this, arguments);
+                        this.foo = "bar";
+                    }
+                    FooRepliq.prototype.setFoo = function (val) {
+                        this.set("foo", val);
+                        return val;
+                    };
+                    return FooRepliq;
+                })(Repliq_1.Repliq);
+                ;
                 var server = new index_1.RepliqServer(port);
                 var client = new index_1.RepliqClient(host);
                 server.declare(FooRepliq);
@@ -192,7 +221,19 @@ describe("Repliq", function () {
     describe("Synchronization", function () {
         describe("yielding on client with object creation", function () {
             it("should create the object on the server", function (done) {
-                var FooRepliq = index_1.define({ foo: "bar", setFoo: function (val) { this.set("foo", val); } });
+                var FooRepliq = (function (_super) {
+                    __extends(FooRepliq, _super);
+                    function FooRepliq() {
+                        _super.apply(this, arguments);
+                        this.foo = "bar";
+                    }
+                    FooRepliq.prototype.setFoo = function (val) {
+                        this.set("foo", val);
+                        return val;
+                    };
+                    return FooRepliq;
+                })(Repliq_1.Repliq);
+                ;
                 var server = new index_1.RepliqServer(port);
                 var client = new index_1.RepliqClient(host);
                 server.declare(FooRepliq);
@@ -214,7 +255,19 @@ describe("Repliq", function () {
         });
         describe("yielding on client with object creation and call", function () {
             it("should create the object on the server", function (done) {
-                var FooRepliq = index_1.define({ foo: "bar", setFoo: function (val) { this.set("foo", val); } });
+                var FooRepliq = (function (_super) {
+                    __extends(FooRepliq, _super);
+                    function FooRepliq() {
+                        _super.apply(this, arguments);
+                        this.foo = "bar";
+                    }
+                    FooRepliq.prototype.setFoo = function (val) {
+                        this.set("foo", val);
+                        return val;
+                    };
+                    return FooRepliq;
+                })(Repliq_1.Repliq);
+                ;
                 var server = new index_1.RepliqServer(port);
                 var client = new index_1.RepliqClient(host);
                 server.declare(FooRepliq);
@@ -237,7 +290,19 @@ describe("Repliq", function () {
         });
         describe("creating a new repliq and introduce a reference for another client", function () {
             it("should create the object on the client", function (done) {
-                var FooRepliq = index_1.define({ foo: "bar", setFoo: function (val) { this.set("foo", val); } });
+                var FooRepliq = (function (_super) {
+                    __extends(FooRepliq, _super);
+                    function FooRepliq() {
+                        _super.apply(this, arguments);
+                        this.foo = "bar";
+                    }
+                    FooRepliq.prototype.setFoo = function (val) {
+                        this.set("foo", val);
+                        return val;
+                    };
+                    return FooRepliq;
+                })(Repliq_1.Repliq);
+                ;
                 var server = new index_1.RepliqServer(port);
                 var client = new index_1.RepliqClient(host);
                 var client2 = new index_1.RepliqClient(host);

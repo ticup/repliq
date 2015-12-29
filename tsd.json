@@ -34,6 +34,21 @@
     },
     "node-uuid/node-uuid-cjs.d.ts": {
       "commit": "78d36dd49b6b55b9fdfe61776a12bf05c8b07777"
+    },
+    "express/express.d.ts": {
+      "commit": "220716d99a77df1654fb4f6cd760dc134ffa8e89"
+    },
+    "serve-static/serve-static.d.ts": {
+      "commit": "220716d99a77df1654fb4f6cd760dc134ffa8e89"
+    },
+    "mime/mime.d.ts": {
+      "commit": "220716d99a77df1654fb4f6cd760dc134ffa8e89"
+    },
+    "react/react.d.ts": {
+      "commit": "220716d99a77df1654fb4f6cd760dc134ffa8e89"
+    },
+    "react/react-dom.d.ts": {
+      "commit": "220716d99a77df1654fb4f6cd760dc134ffa8e89"
     }
   }
 }

@@ -9,10 +9,11 @@ import * as Promise from "bluebird";
 import * as com from "../shared/Communication";
 import {RepliqManager} from "../shared/RepliqManager";
 
-import {RepliqTemplate, Repliq} from "../shared/Repliq";
+import {Repliq} from "../shared/Repliq";
 import {RepliqData} from "../shared/RepliqData";
 import {Round} from "../shared/Round";
 import {Operation} from "../shared/Operation";
+import {RepliqTemplateMap} from "../shared/RepliqManager";
 let debug = Debug("Repliq:com:client");
 
 export class RepliqClient extends RepliqManager {
@@ -21,10 +22,10 @@ export class RepliqClient extends RepliqManager {
 
     incoming: Round[];
 
-    constructor(host: string) {
+    constructor(host: string, schema?: RepliqTemplateMap) {
         this.channel = io(host, {forceNew: true});
         this.incoming = [];
-        super();
+        super(schema);
     }
 
     onConnect() {
@@ -44,7 +45,7 @@ export class RepliqClient extends RepliqManager {
                 let ser = <com.ValueJSON> result;
                 debug("received rpc result for " + selector + "(" + args + ") : " + result);
                 if (error)
-                    return reject(error);
+                    return reject(new Error(error));
                 resolve(com.fromJSON(ser, this));
             });
         });
@@ -54,7 +55,7 @@ export class RepliqClient extends RepliqManager {
         this.channel.close();
     }
 
-    create(template: RepliqTemplate, args) {
+    create(template: typeof Repliq, args) {
         let r = super.create(template, args);
         this.current.add(new Operation(undefined, "CreateRepliq", [template, r.getId()].concat(args)));
         return r;
@@ -71,16 +72,23 @@ export class RepliqClient extends RepliqManager {
 
 
         // master->client yield
-        // 1) reset to tentative
+        // 1) reset to commit values
         this.forEachData((_, r: RepliqData) =>
             r.setToCommit());
 
-        this.incoming.forEach((round: Round) =>
-            this.play(round));
+        // 2) play all rounds
+        this.incoming.forEach((round: Round) => {
+            this.play(round);
+            if (round.getOriginId() == this.getId()) {
+                this.pending = this.pending.slice(1);
+            }
+        });
 
+        // 3) commit all tentative values
         this.forEachData((_, r: RepliqData) =>
             r.commitValues());
 
+        // 4) recompute tentative state
         this.pending.forEach((round: Round) =>
             this.play(round));
     }

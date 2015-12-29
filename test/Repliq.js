@@ -2,40 +2,71 @@
 /// <reference path="../src/index" />
 /// <reference path="../src/shared/Repliq" />
 "use strict";
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") return Reflect.decorate(decorators, target, key, desc);
+    switch (arguments.length) {
+        case 2: return decorators.reduceRight(function(o, d) { return (d && d(o)) || o; }, target);
+        case 3: return decorators.reduceRight(function(o, d) { return (d && d(target, key)), void 0; }, void 0);
+        case 4: return decorators.reduceRight(function(o, d) { return (d && d(target, key, o)) || o; }, desc);
+    }
+};
 var Repliq_1 = require("../src/shared/Repliq");
 var RepliqManager_1 = require("../src/shared/RepliqManager");
 var should = require("should");
 describe("Unit Test", function () {
-    describe("RepliqTemplate", function () {
-        describe("#new()", function () {
-            it("should return a RepliqTemplate object", function () {
-                var t = new Repliq_1.RepliqTemplate();
-                should(t).be.an.instanceOf(Repliq_1.RepliqTemplate);
-            });
-            it("should produce same id twice", function () {
-                var t = new Repliq_1.RepliqTemplate();
-                var t1 = new Repliq_1.RepliqTemplate();
-                should.exist(t.getId());
-                console.log(t.getId());
-                should.equal(t.getId(), t1.getId());
-            });
-        });
-        describe("#new(template, clientId, props)", function () {
-            var props = { foo: "bar", setFoo: function (val) { this.foo = val; } };
-            it("should return a Repliq object", function () {
-                var t = new Repliq_1.RepliqTemplate(props);
-                should(t).be.an.instanceOf(Repliq_1.RepliqTemplate);
-            });
-            it("should produce same id twice", function () {
-                var t = new Repliq_1.RepliqTemplate(props);
-                var t1 = new Repliq_1.RepliqTemplate(props);
-                should.exist(t.getId());
-                should.equal(t.getId(), t1.getId());
-            });
-        });
-    });
+    //describe("RepliqTemplate", () => {
+    //
+    //    describe("#new()", () => {
+    //        it("should return a RepliqTemplate object", () => {
+    //            let t = new RepliqTemplate();
+    //            should(t).be.an.instanceOf(RepliqTemplate);
+    //        });
+    //        it("should produce same id twice", () => {
+    //            let t = new RepliqTemplate();
+    //            let t1 = new RepliqTemplate();
+    //            should.exist(t.getId());
+    //            console.log(t.getId());
+    //            should.equal(t.getId(), t1.getId());
+    //        });
+    //    });
+    //
+    //    describe("#new(template, originId, props)", () => {
+    //        let props = {foo:"bar", setFoo(val) { this.foo = val }};
+    //        it("should return a Repliq object", () => {
+    //            let t = new RepliqTemplate(props);
+    //            should(t).be.an.instanceOf(RepliqTemplate);
+    //        });
+    //        it("should produce same id twice", () => {
+    //            let t = new RepliqTemplate(props);
+    //            let t1 = new RepliqTemplate(props);
+    //            should.exist(t.getId());
+    //            should.equal(t.getId(), t1.getId());
+    //        });
+    //    });
+    //});
     describe("RepliqManager", function () {
-        var template = new Repliq_1.RepliqTemplate({ foo: "bar", setFoo: function (val) { this.set("foo", val); return val; } });
+        var template = (function (_super) {
+            __extends(template, _super);
+            function template() {
+                _super.apply(this, arguments);
+                this.foo = "bar";
+            }
+            template.prototype.setFoo = function (val) {
+                this.set("foo", val);
+                return val;
+            };
+            Object.defineProperty(template.prototype, "setFoo",
+                __decorate([
+                    Repliq_1.sync
+                ], template.prototype, "setFoo", Object.getOwnPropertyDescriptor(template.prototype, "setFoo")));
+            return template;
+        })(Repliq_1.Repliq);
+        ;
         var manager = new RepliqManager_1.RepliqManager();
         describe("#create(template, args)", function () {
             var r = manager.create(template, {});
@@ -65,7 +96,7 @@ describe("Unit Test", function () {
         describe("#call(op, ...args)", function () {
             it("should call the op method with given args", function () {
                 var r = manager.create(template, {});
-                r.call("setFoo", "foo");
+                r.setFoo("foo");
                 should(r.get("foo")).equal("foo");
             });
         });

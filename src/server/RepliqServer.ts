@@ -7,8 +7,8 @@ import * as io from "socket.io";
 import * as guid from "node-uuid";
 
 import * as com from "../shared/Communication";
-import {RepliqTemplate, Repliq} from "../shared/Repliq";
-import {RepliqManager} from "../shared/RepliqManager";
+import {Repliq} from "../shared/Repliq";
+import {RepliqManager, RepliqTemplateMap} from "../shared/RepliqManager";
 import {Listeners}  from "./Listeners";
 import {OperationJSON} from "../shared/Operation";
 import {Round, RoundJSON} from "../shared/Round";
@@ -27,8 +27,11 @@ export class RepliqServer extends RepliqManager {
     private api: Api;
     private listeners: Listeners;
 
+    private yielding : NodeJS.Timer;
+    private propagator: boolean;
+
     // http server or port number, which will create its own http server.
-    constructor(app?: http.Server | number) {
+    constructor(app?: http.Server | number, schema?: RepliqTemplateMap, yieldCycle?: number) {
         this.channel = io(app);
         //this.onConnect().then((socket: SocketIO.Socket) => {
         //    socket;
@@ -50,13 +53,19 @@ export class RepliqServer extends RepliqManager {
         });
         this.listeners = new Listeners();
 
-        super();
+        super(schema);
+
+        if (yieldCycle) {
+            this.yieldEvery(yieldCycle);
+        } else {
+            this.propagator = true;
+        }
     }
 
     handleRpc(selector: string, sargs: com.ValueJSON[], reply: Function) {
         debug("received rpc " + selector + "(" + sargs + ")");
         if (!this.api) {
-            return reply("No exported API");
+            return reply("No exported API: " + selector);
         }
         let handler = this.api[selector];
         if (!handler) {
@@ -64,7 +73,6 @@ export class RepliqServer extends RepliqManager {
         }
         let args = sargs.map((a) => com.fromJSON(a, this));
         let result = handler.apply(this.api, args);
-        debug("result for rpc: " + result);
         reply(null, com.toJSON(result));
     }
 
@@ -72,7 +80,10 @@ export class RepliqServer extends RepliqManager {
         debug("received round");
         let round = Round.fromJSON(json, this);
         this.incoming.push(round);
+        this.notifyChanged();
     }
+
+
 
     yield() {
         locald("yielding");
@@ -86,7 +97,10 @@ export class RepliqServer extends RepliqManager {
 
         if (this.incoming.length > 0) {
             locald("- adding incoming");
-            rounds = rounds.concat(this.incoming);
+            this.incoming.forEach((round: Round) => {
+                round.setServerNr(this.newRoundNr());
+                rounds.push(round);
+            });
             this.incoming = [];
         }
 
@@ -99,6 +113,27 @@ export class RepliqServer extends RepliqManager {
                 r.commitValues());
         }
         rounds.forEach((round: Round) => this.broadcastRound(round));
+    }
+
+    startYieldCycle() {
+        this.yield()
+    }
+
+    yieldEvery(ms: number) {
+        if (this.yielding)
+            this.stopYielding();
+        this.yielding = setInterval(() => this.yield(), ms);
+    }
+
+    public notifyChanged() {
+        if (this.propagator)
+            this.yield();
+    }
+
+    stopYielding() {
+        if (this.yielding) {
+            clearInterval(this.yielding);
+        }
     }
 
     broadcastRound(round: Round) {

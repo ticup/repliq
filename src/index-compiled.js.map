@@ -1,1 +1,0 @@
-{"version":3,"sources":["index.js"],"names":[],"mappings":";;;;;;;;;;;kBAES,YAAY;;;;;;;;;mBACZ,YAAY","file":"index-compiled.js","sourcesContent":["/// <reference path=\"./client/index\" />\n/// <reference path=\"./server/index\" />\nexport { RepliqClient } from \"./client/index\";\nexport { RepliqServer } from \"./server/index\";\n//# sourceMappingURL=index.js.map"]}

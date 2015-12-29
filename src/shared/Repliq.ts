@@ -5,85 +5,48 @@ import {RepliqManager} from "./RepliqManager";
 import {RepliqData} from "./RepliqData";
 import {ClientId} from "./Types";
 
-declare interface ProxyHandlerInterface<T> {
-    get?: (target: T, property: string, receiver: T) => any;
-    set?: (target: T, property: string, key: any, receiver: T) => boolean;
-}
+export class Repliq {
+    public static id: number;
 
-declare class Proxy<T> {
-    constructor(target: T, handler: ProxyHandlerInterface<T>);
-}
+    private static curId: number = 0;
 
-function computeHashString(str: string): number {
-    var hash = 0, i, chr, len;
-    if (str.length == 0) return hash;
-    for (i = 0, len = str.length; i < len; i++) {
-        chr   = str.charCodeAt(i);
-        hash  = ((hash << 5) - hash) + chr;
-        hash |= 0; // Convert to 32bit integer
-    }
-    return hash;
-}
+    static isRepliq : boolean = true;
 
-function computeHash(obj: Object): number {
-    let str = Object.keys(obj).reduce((acc, key) => (acc + key + obj[key].toString()), "");
-    return computeHashString(str);
-}
-
-export class RepliqTemplate {
-    private id: number;
-    private methods;
-    public defaults;
-
-    private curId: number;
-
-    constructor(props: Object = {}) {
-        this.methods = {};
-        this.defaults = {};
-
-        Object.keys(props).forEach((key) => {
-            let val = props[key];
-            if (typeof val === "function") {
-                this.methods[key] = val;
-            } else {
-                this.defaults[key] = val;
-            }
-        });
-
-        this.id = computeHash(props);
-        this.curId = 0;
+    static stub() {
+        let data = new RepliqData({});
+        let repl = new RepliqStub(this, data);
+        return repl;
     }
 
-    getId() {
+    static getId() {
         return this.id;
     }
 
-    getNextId() {
+    static getNextId() {
         return this.curId++;
     }
 
-    getMethod(op) {
-        return this.methods[op];
-    }
-}
+    private clientId: ClientId;
+    public  manager : RepliqManager;
+    private template: typeof Repliq;
+    private data    : RepliqData;
+    private id      : string;
 
-export class Repliq {
-    private id: string;
-    private clientId: string;
 
-    private manager: RepliqManager;
-    private data: RepliqData;
-
-    private template;
-
-    constructor(template: RepliqTemplate, data: RepliqData, manager: RepliqManager,  clientId: ClientId, id?: string) {
-        this.template = template;
+    constructor(template: typeof Repliq, data: RepliqData, manager: RepliqManager,  clientId: ClientId, id?: string) {
         this.clientId = clientId;
         this.manager = manager;
         this.data = data;
+        this.template = template;
 
-        this.id = id ? id : clientId + "@" + this.template.getId() + ":" + this.template.curId++;
+        this.id = id ? id : clientId + "@" + this.getTemplate().getId() + ":" + this.getTemplate().curId++;
     }
+
+
+    getMethod(op) {
+        return this[op];
+    }
+
 
     // user interface:
 
@@ -91,17 +54,23 @@ export class Repliq {
         return this.data.getTentative(key);
     }
 
-    set(key, val) {
-        this.call("set", key, val);
-        //return this.data.setTentative(key, val);
+    set(key, value) {
+        return this.data.setTentative(key, value);
     }
+
+    //set(key, val) {
+    //    this.call("set", key, val);
+        //return this.data.setTentative(key, val);
+    //}
 
     getCommit(key) {
         return this.data.getCommitted(key);
     }
 
-    call(op, ...args) {
-        return this.manager.call(this, this.data, op, args);
+    call(op, fun: Function, args) {
+        let val = this.manager.call(this, this.data, op, fun, args);
+        this.manager.notifyChanged();
+        return val;
     }
 
 
@@ -121,6 +90,21 @@ export class Repliq {
     }
 }
 
-export function define(props) {
-    return new RepliqTemplate(props);
+export class RepliqStub extends Repliq {
+    constructor(template: typeof Repliq, data:RepliqData) {
+        super(template, data, null, null);
+    }
+
+    call(op, ...args) {
+        return this.getMethod(op).call(args);
+    }
+}
+
+
+export function sync(target: any, key: string, prop: any) {
+    return {
+        value: function (...args: any[]) {
+            return this.call(key, prop.value, args);
+        }
+    };
 }
