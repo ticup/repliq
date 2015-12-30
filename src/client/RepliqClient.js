@@ -60,23 +60,28 @@ var RepliqClient = (function (_super) {
             var round = this.current;
             this.pending.push(round);
             this.current = this.newRound();
+            debug("YieldPull: " + JSON.stringify(round.toJSON()));
             this.channel.emit("YieldPull", round.toJSON());
         }
-        this.forEachData(function (_, r) {
-            return r.setToCommit();
-        });
-        this.incoming.forEach(function (round) {
-            _this.play(round);
-            if (round.getOriginId() == _this.getId()) {
-                _this.pending = _this.pending.slice(1);
-            }
-        });
-        this.forEachData(function (_, r) {
-            return r.commitValues();
-        });
-        this.pending.forEach(function (round) {
-            return _this.play(round);
-        });
+        if (this.incoming.length > 0) {
+            this.replaying = true;
+            this.forEachData(function (_, r) {
+                return r.setToCommit();
+            });
+            this.incoming.forEach(function (round) {
+                _this.play(round);
+                if (round.getOriginId() == _this.getId()) {
+                    _this.pending = _this.pending.slice(1);
+                }
+            });
+            this.forEachData(function (_, r) {
+                return r.commitValues();
+            });
+            this.pending.forEach(function (round) {
+                return _this.play(round);
+            });
+            this.replaying = false;
+        }
     };
     return RepliqClient;
 })(RepliqManager_1.RepliqManager);

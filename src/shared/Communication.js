@@ -29,14 +29,14 @@ function toJSON(val) {
             val.committedKeys().forEach(function (key) { return obj_1.values[key] = toJSON(val.getCommit(key)); });
             return { val: obj_1, type: "Repliq" };
         }
-        if (typeof val["isRepliq"] !== "undefined" && val["isRepliq"]) {
-            return { val: val.getId(), type: "RepliqTemplate" };
-        }
         var obj = {};
         for (var key in val) {
             obj[key] = toJSON(val[key]);
         }
         return { val: obj, type: "object" };
+    }
+    if (type === "function" && val.isRepliq) {
+        return { val: val.getId(), type: "RepliqTemplate" };
     }
     if (type === "undefined") {
         return { val: val, type: "undefined" };

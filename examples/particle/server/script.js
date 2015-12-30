@@ -1,7 +1,9 @@
 var request = require("request");
 var schedule = require('node-schedule');
-var url = "https://api.particle.io/v1/devices/2f0018000b47343138333038/led?access_token=4271a4fb56926bfb628383aca8145c8cdebe2b30";
-var url2 = "https://api.particle.io/v1/devices/2f0018000b47343138333038/light?access_token=4271a4fb56926bfb628383aca8145c8cdebe2b30";
+var device_id = process.env.DEVICE_ID;
+var access_token = process.env.ACCESS_TOKEN;
+var url = "https://api.particle.io/v1/devices/" + device_id + "/led?access_token=" + access_token;
+var url2 = "https://api.particle.io/v1/devices/" + device_id + "/light?access_token=" + access_token;
 function startTimeJob(start, end) {
     schedule.scheduleJob({
         hour: start[0],

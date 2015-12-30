@@ -57,22 +57,21 @@ var RepliqServer = (function (_super) {
         reply(null, com.toJSON(result));
     };
     RepliqServer.prototype.handleYieldPull = function (json) {
-        debug("received round");
+        debug("YieldPull: received round");
         var round = Round_1.Round.fromJSON(json, this);
         this.incoming.push(round);
-        this.notifyChanged();
     };
     RepliqServer.prototype.yield = function () {
         var _this = this;
         locald("yielding");
         var rounds = [];
         if (this.current.hasOperations()) {
-            locald("- adding current");
+            locald("- adding current round");
             rounds.push(this.current);
             this.current = this.newRound();
         }
         if (this.incoming.length > 0) {
-            locald("- adding incoming");
+            locald("- adding incoming round");
             this.incoming.forEach(function (round) {
                 round.setServerNr(_this.newRoundNr());
                 rounds.push(round);
@@ -80,13 +79,15 @@ var RepliqServer = (function (_super) {
             this.incoming = [];
         }
         if (rounds.length > 0) {
-            locald(rounds);
+            locald(rounds.map(function (r) { return r.operations.map(function (o) { return o.selector; }); }));
+            this.replaying = true;
             rounds.forEach(function (round) {
                 return _this.play(round);
             });
             this.forEachData(function (_, r) {
                 return r.commitValues();
             });
+            this.replaying = false;
         }
         rounds.forEach(function (round) { return _this.broadcastRound(round); });
     };

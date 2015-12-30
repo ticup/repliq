@@ -1,9 +1,8 @@
 /// <reference path="../typings/tsd.d.ts" />
 /// <reference path="../src/index" />
 ///<reference path="../src/shared/Repliq.ts"/>
-
-import {Repliq} from "../src/shared/Repliq";
 "use strict";
+import {Repliq, List, sync} from "../src/shared/index";
 import {RepliqServer as Server,
         RepliqClient as Client}  from "../src/index";
 import * as http from "http";
@@ -160,7 +159,7 @@ describe("Repliq", () => {
         });
 
         describe("array", () => {
-            let arr = [1,2,3];
+            let arr = List([1,2,3]);
             sendToServerAndBack(arr, (res) => {
                should.deepEqual(arr, res);
             });
@@ -266,6 +265,7 @@ describe("Repliq", () => {
             it("should create the object on the server", (done) => {
                 class FooRepliq extends Repliq{
                     public foo = "bar";
+                    @sync
                     setFoo(val) {
                         this.set("foo", val);
                         return val;
@@ -279,8 +279,8 @@ describe("Repliq", () => {
                 server.export({ identity: function (x) {
                     return x;
                 }});
-                let r = client.create(FooRepliq, { foo: "foo" });
-                r.call("setFoo", "rab");
+                let r = <FooRepliq>client.create(FooRepliq, { foo: "foo" });
+                r.setFoo("rab");
                 client.yield();
                 setTimeout(() => {
                     server.yield();
@@ -296,6 +296,7 @@ describe("Repliq", () => {
             it("should create the object on the client", (done) => {
                 class FooRepliq extends Repliq{
                     public foo = "bar";
+                    @sync
                     setFoo(val) {
                         this.set("foo", val);
                         return val;
@@ -315,26 +316,28 @@ describe("Repliq", () => {
 
                 server.yield();
                 //let r = client.create(FooRepliq, { foo: "foo" });
-                client.send("getRepliq").then((r: Repliq) => {
-                    client2.send("getRepliq").then((r2: Repliq) => {})
-                    let c = client.create(FooRepliq, {});
-                    c.call("setFoo", c);
-                    client.yield();
+                client.send("getRepliq").then((r: FooRepliq) => {
+                    client2.send("getRepliq").then((r2: FooRepliq) => {
+                        let c = <FooRepliq>client.create(FooRepliq, {});
+                        r.setFoo(c);
+                        client.yield();
 
-                    delay(() => {
-                        server.yield();
-                        let r2 = server.getRepliq(c.getId());
-                        should.exist(r2);
-                        should(r2.get("foo")).be.an.instanceof(Repliq);
-                        //stop(server, client); done();
-
-                        delay(()=>{
-                            client2.yield();
-                            let val = r2.get("foo");
-                            should.exist(val);
-                            should(val).be.an.instanceof(Repliq);
-                            should.equal(val.getId(), c.getId());
+                        delay(() => {
+                            server.yield();
+                            let c3 = server.getRepliq(c.getId());
+                            should.exist(c3);
+                            //should(s.get("foo")).be.an.instanceof(Repliq);
+                            should(s.get("foo").getId()).equal(c3.getId());
                             stop(server, client); done();
+
+                            delay(()=>{
+                                client2.yield();
+                                let val = r2.get("foo");
+                                should.exist(val);
+                                //should(val).be.an.instanceof(Repliq);
+                                should.equal(val.getId(), c.getId());
+                                stop(server, client, client2); done();
+                            });
                         });
                     });
                 });

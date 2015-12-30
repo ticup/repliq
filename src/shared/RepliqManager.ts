@@ -26,7 +26,7 @@ export class RepliqManager {
 
     private repliqsData;
 
-    private replaying : Repliq;
+    protected replaying : boolean;
 
     private roundNr : number;
 
@@ -46,6 +46,7 @@ export class RepliqManager {
         this.pending = [];
         this.confirmed =[];
         this.incoming = [];
+        this.replaying = false;
         if (schema) {
             this.declareAll(schema);
         }
@@ -112,12 +113,13 @@ export class RepliqManager {
         //} else {
         if (!this.replaying) {
             startReplay = true;
+            debug("recording " + selector +  "(" + args + ")");
             this.current.add(new Operation(repliq.getId(), selector, args));
-            this.replaying = repliq;
+            this.replaying = true;
         }
         let res = fun.apply(data, args);
         if (startReplay) {
-            this.replaying = undefined;
+            this.replaying = false;
             //this.notifyChanged();
         }
         return res;
@@ -144,7 +146,7 @@ export class RepliqManager {
                 this.execute(op.selector, op.args)
             } else {
                 let rep = this.getRepliq(op.targetId);
-                rep[op.selector].call(rep, op.args);
+                rep[op.selector].apply(rep, op.args);
             }
         });
     }
@@ -179,6 +181,6 @@ function computeHashString(str: string): number {
 }
 
 function computeHash(obj: Object): number {
-    let str = Object.keys(obj).reduce((acc, key) => (acc + key + obj[key].toString()), "");
+    let str = Object.keys(obj).reduce((acc, key) => Object.hasOwnProperty(key) ? (acc + key + obj[key].toString()) : "", "");
     return computeHashString(str);
 }

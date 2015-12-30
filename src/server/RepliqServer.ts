@@ -77,10 +77,10 @@ export class RepliqServer extends RepliqManager {
     }
 
     handleYieldPull(json: RoundJSON) {
-        debug("received round");
+        debug("YieldPull: received round");
         let round = Round.fromJSON(json, this);
         this.incoming.push(round);
-        this.notifyChanged();
+        //this.notifyChanged();
     }
 
 
@@ -88,15 +88,16 @@ export class RepliqServer extends RepliqManager {
     yield() {
         locald("yielding");
         var rounds = [];
+
         // master->client yield
         if (this.current.hasOperations()) {
-            locald("- adding current");
+            locald("- adding current round");
             rounds.push(this.current);
             this.current = this.newRound();
         }
 
         if (this.incoming.length > 0) {
-            locald("- adding incoming");
+            locald("- adding incoming round");
             this.incoming.forEach((round: Round) => {
                 round.setServerNr(this.newRoundNr());
                 rounds.push(round);
@@ -105,12 +106,17 @@ export class RepliqServer extends RepliqManager {
         }
 
         if (rounds.length > 0) {
-            locald(rounds);
+            locald(rounds.map((r) => r.operations.map((o) => o.selector)));
+
+            this.replaying = true;
+
             rounds.forEach((round: Round) =>
                 this.play(round));
 
             this.forEachData((_, r: RepliqData) =>
                 r.commitValues());
+
+            this.replaying = false;
         }
         rounds.forEach((round: Round) => this.broadcastRound(round));
     }

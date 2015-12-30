@@ -17,6 +17,7 @@ var RepliqManager = (function () {
         this.pending = [];
         this.confirmed = [];
         this.incoming = [];
+        this.replaying = false;
         if (schema) {
             this.declareAll(schema);
         }
@@ -65,12 +66,13 @@ var RepliqManager = (function () {
         var startReplay = false;
         if (!this.replaying) {
             startReplay = true;
+            debug("recording " + selector + "(" + args + ")");
             this.current.add(new Operation_1.Operation(repliq.getId(), selector, args));
-            this.replaying = repliq;
+            this.replaying = true;
         }
         var res = fun.apply(data, args);
         if (startReplay) {
-            this.replaying = undefined;
+            this.replaying = false;
         }
         return res;
     };
@@ -95,7 +97,7 @@ var RepliqManager = (function () {
             }
             else {
                 var rep = _this.getRepliq(op.targetId);
-                rep[op.selector].call(rep, op.args);
+                rep[op.selector].apply(rep, op.args);
             }
         });
     };
@@ -122,7 +124,7 @@ function computeHashString(str) {
     return hash;
 }
 function computeHash(obj) {
-    var str = Object.keys(obj).reduce(function (acc, key) { return (acc + key + obj[key].toString()); }, "");
+    var str = Object.keys(obj).reduce(function (acc, key) { return Object.hasOwnProperty(key) ? (acc + key + obj[key].toString()) : ""; }, "");
     return computeHashString(str);
 }
 //# sourceMappingURL=RepliqManager.js.map

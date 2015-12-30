@@ -47,14 +47,14 @@ export function toJSON(val: Object): ValueJSON {
             val.committedKeys().forEach((key) => obj.values[key] = toJSON(val.getCommit(key)));
             return { val: obj, type: "Repliq" };
         }
-        if (typeof val["isRepliq"] !== "undefined" && val["isRepliq"]) {
-            return { val: (<any>val).getId(), type: "RepliqTemplate" };
-        }
         let obj = {};
         for (let key in val) {
             obj[key] = toJSON(val[key]);
         }
         return { val: obj, type: "object" };
+    }
+    if (type === "function" && (<any>val).isRepliq) {
+        return { val: (<any>val).getId(), type: "RepliqTemplate" };
     }
     if (type === "undefined") {
         return {val, type: "undefined" };

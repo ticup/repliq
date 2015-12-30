@@ -67,30 +67,37 @@ export class RepliqClient extends RepliqManager {
             let round = this.current;
             this.pending.push(round);
             this.current = this.newRound();
+            debug("YieldPull: " + JSON.stringify(round.toJSON()));
             this.channel.emit("YieldPull", round.toJSON());
         }
 
 
         // master->client yield
-        // 1) reset to commit values
-        this.forEachData((_, r: RepliqData) =>
-            r.setToCommit());
+        if (this.incoming.length > 0) {
+            this.replaying = true;
 
-        // 2) play all rounds
-        this.incoming.forEach((round: Round) => {
-            this.play(round);
-            if (round.getOriginId() == this.getId()) {
-                this.pending = this.pending.slice(1);
-            }
-        });
+            // 1) reset to commit values
+            this.forEachData((_, r:RepliqData) =>
+                r.setToCommit());
 
-        // 3) commit all tentative values
-        this.forEachData((_, r: RepliqData) =>
-            r.commitValues());
+            // 2) play all rounds
+            this.incoming.forEach((round:Round) => {
+                this.play(round);
+                if (round.getOriginId() == this.getId()) {
+                    this.pending = this.pending.slice(1);
+                }
+            });
 
-        // 4) recompute tentative state
-        this.pending.forEach((round: Round) =>
-            this.play(round));
+            // 3) commit all tentative values
+            this.forEachData((_, r:RepliqData) =>
+                r.commitValues());
+
+            // 4) recompute tentative state
+            this.pending.forEach((round:Round) =>
+                this.play(round));
+
+            this.replaying = false;
+        }
     }
 
 
