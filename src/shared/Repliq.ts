@@ -4,8 +4,9 @@
 import {RepliqManager} from "./RepliqManager";
 import {RepliqData} from "./RepliqData";
 import {ClientId} from "./Types";
+import {EventEmitter} from "events";
 
-export class Repliq {
+export class Repliq extends EventEmitter {
     public static id: number;
 
     private static curId: number = 0;
@@ -34,6 +35,7 @@ export class Repliq {
 
 
     constructor(template: typeof Repliq, data: RepliqData, manager: RepliqManager,  clientId: ClientId, id?: string) {
+        super();
         this.clientId = clientId;
         this.manager = manager;
         this.data = data;
@@ -69,7 +71,7 @@ export class Repliq {
 
     call(op, fun: Function, args) {
         let val = this.manager.call(this, this.data, op, fun, args);
-        this.manager.notifyChanged();
+        //this.manager.notifyChanged();
         return val;
     }
 

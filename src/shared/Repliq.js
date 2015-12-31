@@ -6,8 +6,11 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 var RepliqData_1 = require("./RepliqData");
-var Repliq = (function () {
+var events_1 = require("events");
+var Repliq = (function (_super) {
+    __extends(Repliq, _super);
     function Repliq(template, data, manager, clientId, id) {
+        _super.call(this);
         this.clientId = clientId;
         this.manager = manager;
         this.data = data;
@@ -39,7 +42,6 @@ var Repliq = (function () {
     };
     Repliq.prototype.call = function (op, fun, args) {
         var val = this.manager.call(this, this.data, op, fun, args);
-        this.manager.notifyChanged();
         return val;
     };
     Repliq.prototype.getTemplate = function () {
@@ -54,7 +56,7 @@ var Repliq = (function () {
     Repliq.curId = 0;
     Repliq.isRepliq = true;
     return Repliq;
-})();
+})(events_1.EventEmitter);
 exports.Repliq = Repliq;
 var RepliqStub = (function (_super) {
     __extends(RepliqStub, _super);

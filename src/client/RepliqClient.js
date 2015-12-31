@@ -68,19 +68,17 @@ var RepliqClient = (function (_super) {
             this.forEachData(function (_, r) {
                 return r.setToCommit();
             });
+            var affectedExt = this.replay(this.incoming);
             this.incoming.forEach(function (round) {
-                _this.play(round);
                 if (round.getOriginId() == _this.getId()) {
                     _this.pending = _this.pending.slice(1);
                 }
-            });
-            this.forEachData(function (_, r) {
-                return r.commitValues();
             });
             this.pending.forEach(function (round) {
                 return _this.play(round);
             });
             this.replaying = false;
+            affectedExt.forEach(function (rep) { return rep.emit("changedExternal"); });
         }
     };
     return RepliqClient;

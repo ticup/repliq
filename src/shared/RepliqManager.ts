@@ -138,8 +138,22 @@ export class RepliqManager {
         }
     }
 
-    protected play(round: Round) {
-        debug("playing round " + round.getOriginNr() + " (" + round.operations.length + ")");
+    protected replay(rounds: Round[]): Repliq[] {
+        this.replaying = true;
+
+        let affected = rounds.reduce((acc, round: Round) =>
+            acc.concat(this.play(round)), []);
+
+        this.forEachData((_, r: RepliqData) =>
+            r.commitValues());
+
+        this.replaying = false;
+        return affected;
+    }
+
+    protected play(round: Round): Repliq[] {
+        //debug("playing round " + round.getOriginNr() + " (" + round.operations.length + ")");
+        let affected = [];
         round.operations.forEach((op: Operation) => {
             debug(op.targetId + " . " + op.selector);
             if (op.targetId === undefined) {
@@ -147,8 +161,10 @@ export class RepliqManager {
             } else {
                 let rep = this.getRepliq(op.targetId);
                 rep[op.selector].apply(rep, op.args);
+                affected.push(rep);
             }
         });
+        return affected;
     }
 
 

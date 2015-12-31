@@ -81,23 +81,22 @@ export class RepliqClient extends RepliqManager {
                 r.setToCommit());
 
             // 2) play all rounds
+            let affectedExt = this.replay(this.incoming);
             this.incoming.forEach((round:Round) => {
-                this.play(round);
                 if (round.getOriginId() == this.getId()) {
                     this.pending = this.pending.slice(1);
                 }
             });
 
-            // 3) commit all tentative values
-            this.forEachData((_, r:RepliqData) =>
-                r.commitValues());
 
-            // 4) recompute tentative state
+            // 3) recompute tentative state
             this.pending.forEach((round:Round) =>
                 this.play(round));
 
             this.replaying = false;
+            affectedExt.forEach((rep: Repliq) => rep.emit("changedExternal"));
         }
+
     }
 
 

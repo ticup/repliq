@@ -87,9 +87,21 @@ var RepliqManager = (function () {
             return new Error(selector + " does not exist");
         }
     };
+    RepliqManager.prototype.replay = function (rounds) {
+        var _this = this;
+        this.replaying = true;
+        var affected = rounds.reduce(function (acc, round) {
+            return acc.concat(_this.play(round));
+        }, []);
+        this.forEachData(function (_, r) {
+            return r.commitValues();
+        });
+        this.replaying = false;
+        return affected;
+    };
     RepliqManager.prototype.play = function (round) {
         var _this = this;
-        debug("playing round " + round.getOriginNr() + " (" + round.operations.length + ")");
+        var affected = [];
         round.operations.forEach(function (op) {
             debug(op.targetId + " . " + op.selector);
             if (op.targetId === undefined) {
@@ -98,8 +110,10 @@ var RepliqManager = (function () {
             else {
                 var rep = _this.getRepliq(op.targetId);
                 rep[op.selector].apply(rep, op.args);
+                affected.push(rep);
             }
         });
+        return affected;
     };
     RepliqManager.prototype.newRound = function () {
         return new Round_1.Round(this.newRoundNr(), this.getId());

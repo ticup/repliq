@@ -66,8 +66,10 @@ var RepliqServer = (function (_super) {
         locald("yielding");
         var rounds = [];
         if (this.current.hasOperations()) {
-            locald("- adding current round");
-            rounds.push(this.current);
+            var cur = this.current;
+            locald("- playing current round");
+            this.replay([cur]);
+            this.broadcastRound(cur);
             this.current = this.newRound();
         }
         if (this.incoming.length > 0) {
@@ -76,20 +78,11 @@ var RepliqServer = (function (_super) {
                 round.setServerNr(_this.newRoundNr());
                 rounds.push(round);
             });
+            var affectedExt = this.replay(this.incoming);
+            this.incoming.forEach(function (r) { return _this.broadcastRound(r); });
             this.incoming = [];
+            affectedExt.forEach(function (rep) { return rep.emit("changedExternal"); });
         }
-        if (rounds.length > 0) {
-            locald(rounds.map(function (r) { return r.operations.map(function (o) { return o.selector; }); }));
-            this.replaying = true;
-            rounds.forEach(function (round) {
-                return _this.play(round);
-            });
-            this.forEachData(function (_, r) {
-                return r.commitValues();
-            });
-            this.replaying = false;
-        }
-        rounds.forEach(function (round) { return _this.broadcastRound(round); });
     };
     RepliqServer.prototype.startYieldCycle = function () {
         this.yield();

@@ -345,5 +345,43 @@ describe("Repliq", () => {
             });
         });
 
+
+        //describe("repliq.on('changedExternal', fun)", () => {
+        //    it("should call the function when the Repliq is altered by an external source", (done) => {
+        //        class FooRepliq extends Repliq{
+        //            public foo = "bar";
+        //            @sync
+        //            setFoo(val) {
+        //                this.set("foo", val);
+        //                return val;
+        //            }};
+        //        let server = new Server(port);
+        //        let client = new Client(host);
+        //
+        //        server.declare(FooRepliq);
+        //        client.declare(FooRepliq);
+        //
+        //        let s = <FooRepliq>server.create(FooRepliq, {  });
+        //        server.export({ getRepliq: function () {
+        //            return s;
+        //        }});
+        //
+        //        //server.yield();
+        //        //let r = client.create(FooRepliq, { foo: "foo" });
+        //        client.send("getRepliq").then((r: FooRepliq) => {
+        //            should.exist(r);
+        //
+        //            s.setFoo("bar");
+        //            server.yield();
+        //            delay(() => {
+        //                r.on("changedExternal", () => {
+        //                    stop(server, client);
+        //                    done();
+        //                });
+        //            });
+        //        });
+        //    });
+        //});
+
     });
 });

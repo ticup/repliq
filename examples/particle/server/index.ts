@@ -16,6 +16,10 @@ let server = new RepliqServer(hserv, {Status});
 
 let _status = server.create(Status);
 
+_status.on("changedExternal", () => {
+    scripts.setLight(_status.get());
+});
+
 server.export({
     status: ()=> _status
 });

@@ -91,8 +91,10 @@ export class RepliqServer extends RepliqManager {
 
         // master->client yield
         if (this.current.hasOperations()) {
-            locald("- adding current round");
-            rounds.push(this.current);
+            let cur = this.current;
+            locald("- playing current round");
+            this.replay([cur]);
+            this.broadcastRound(cur);
             this.current = this.newRound();
         }
 
@@ -102,23 +104,13 @@ export class RepliqServer extends RepliqManager {
                 round.setServerNr(this.newRoundNr());
                 rounds.push(round);
             });
+            let affectedExt = this.replay(this.incoming);
+            this.incoming.forEach((r) => this.broadcastRound(r));
             this.incoming = [];
+
+            affectedExt.forEach((rep) => rep.emit("changedExternal"));
         }
 
-        if (rounds.length > 0) {
-            locald(rounds.map((r) => r.operations.map((o) => o.selector)));
-
-            this.replaying = true;
-
-            rounds.forEach((round: Round) =>
-                this.play(round));
-
-            this.forEachData((_, r: RepliqData) =>
-                r.commitValues());
-
-            this.replaying = false;
-        }
-        rounds.forEach((round: Round) => this.broadcastRound(round));
     }
 
     startYieldCycle() {
