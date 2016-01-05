@@ -120,7 +120,7 @@ export class RepliqManager {
         let res = fun.apply(data, args);
         if (startReplay) {
             this.replaying = false;
-            //this.notifyChanged();
+            this.notifyChanged();
         }
         return res;
 

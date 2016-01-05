@@ -343,6 +343,7 @@ describe("Repliq", function () {
                             stop(server, client);
                             done();
                             delay(function () {
+                                console.log("yielding client 2");
                                 client2.yield();
                                 var val = r2.get("foo");
                                 should.exist(val);
@@ -352,6 +353,85 @@ describe("Repliq", function () {
                             });
                         });
                     });
+                });
+            });
+        });
+        describe("repliq.on('changedExternal', fun) on client", function () {
+            it("should call the function when the Repliq is altered by an external source", function (done) {
+                var FooRepliq = (function (_super) {
+                    __extends(FooRepliq, _super);
+                    function FooRepliq() {
+                        _super.apply(this, arguments);
+                        this.foo = "bar";
+                    }
+                    FooRepliq.prototype.setFoo = function (val) {
+                        this.set("foo", val);
+                        return val;
+                    };
+                    Object.defineProperty(FooRepliq.prototype, "setFoo",
+                        __decorate([
+                            index_1.sync
+                        ], FooRepliq.prototype, "setFoo", Object.getOwnPropertyDescriptor(FooRepliq.prototype, "setFoo")));
+                    return FooRepliq;
+                })(index_1.Repliq);
+                ;
+                var server = new index_2.RepliqServer(port);
+                var client = new index_2.RepliqClient(host);
+                server.declare(FooRepliq);
+                client.declare(FooRepliq);
+                var s = server.create(FooRepliq, {});
+                server.export({ getRepliq: function () {
+                        return s;
+                    } });
+                client.send("getRepliq").then(function (r) {
+                    should.exist(r);
+                    s.setFoo("bar");
+                    server.yield();
+                    delay(function () {
+                        r.on("changedExternal", function () {
+                            stop(server, client);
+                            done();
+                        });
+                        client.yield();
+                    });
+                });
+            });
+        });
+        describe("repliq.on('changedExternal', fun) on server", function () {
+            it("should call the function when the Repliq is altered by an external source", function (done) {
+                var FooRepliq = (function (_super) {
+                    __extends(FooRepliq, _super);
+                    function FooRepliq() {
+                        _super.apply(this, arguments);
+                        this.foo = "bar";
+                    }
+                    FooRepliq.prototype.setFoo = function (val) {
+                        this.set("foo", val);
+                        return val;
+                    };
+                    Object.defineProperty(FooRepliq.prototype, "setFoo",
+                        __decorate([
+                            index_1.sync
+                        ], FooRepliq.prototype, "setFoo", Object.getOwnPropertyDescriptor(FooRepliq.prototype, "setFoo")));
+                    return FooRepliq;
+                })(index_1.Repliq);
+                ;
+                var server = new index_2.RepliqServer(port);
+                var client = new index_2.RepliqClient(host);
+                server.declare(FooRepliq);
+                client.declare(FooRepliq);
+                var s = server.create(FooRepliq, {});
+                server.export({ getRepliq: function () {
+                        return s;
+                    } });
+                s.on("changedExternal", function () {
+                    stop(server, client);
+                    done();
+                });
+                client.send("getRepliq").then(function (r) {
+                    should.exist(r);
+                    r.setFoo("bar");
+                    client.yield();
                 });
             });
         });

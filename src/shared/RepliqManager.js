@@ -73,6 +73,7 @@ var RepliqManager = (function () {
         var res = fun.apply(data, args);
         if (startReplay) {
             this.replaying = false;
+            this.notifyChanged();
         }
         return res;
     };

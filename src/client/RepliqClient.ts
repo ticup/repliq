@@ -11,12 +11,14 @@ import {RepliqManager} from "../shared/RepliqManager";
 
 import {Repliq} from "../shared/Repliq";
 import {RepliqData} from "../shared/RepliqData";
-import {Round} from "../shared/Round";
+import {Round, RoundJSON} from "../shared/Round";
 import {Operation} from "../shared/Operation";
 import {RepliqTemplateMap} from "../shared/RepliqManager";
 let debug = Debug("Repliq:com:client");
 
 export class RepliqClient extends RepliqManager {
+
+    onConnectP : Promise<boolean>;
 
     channel : SocketIOClient.Socket;
 
@@ -25,16 +27,31 @@ export class RepliqClient extends RepliqManager {
     constructor(host: string, schema?: RepliqTemplateMap) {
         this.channel = io(host, {forceNew: true});
         this.incoming = [];
+        this.setupYieldPush()
         super(schema);
     }
 
+    setupYieldPush() {
+        this.channel.on("YieldPush", (round: RoundJSON) => this.handleYieldPull(round));
+    }
+
+    handleYieldPull(json: RoundJSON) {
+        debug("YieldPull: received round");
+        let round = Round.fromJSON(json, this);
+        this.incoming.push(round);
+        //this.notifyChanged();
+    }
+
     onConnect() {
-        return new Promise((resolve) => {
-            this.channel.on("connect", () => {
-                debug("client connected");
-                resolve(true);
-            });
-        })
+        if (typeof this.onConnectP === "undefined") {
+            this.onConnectP = new Promise<boolean>((resolve) => {
+                this.channel.on("connect", () => {
+                    debug("client connected");
+                    resolve(true);
+                });
+            })
+        }
+        return this.onConnectP;
     }
 
     send(selector: string, ...args: Object[]) {

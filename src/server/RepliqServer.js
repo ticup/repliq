@@ -60,9 +60,12 @@ var RepliqServer = (function (_super) {
         debug("YieldPull: received round");
         var round = Round_1.Round.fromJSON(json, this);
         this.incoming.push(round);
+        this.notifyChanged();
     };
     RepliqServer.prototype.yield = function () {
         var _this = this;
+        console.assert(!this.yielding);
+        this.yielding = true;
         locald("yielding");
         var rounds = [];
         if (this.current.hasOperations()) {
@@ -83,26 +86,28 @@ var RepliqServer = (function (_super) {
             this.incoming = [];
             affectedExt.forEach(function (rep) { return rep.emit("changedExternal"); });
         }
+        this.yielding = false;
     };
     RepliqServer.prototype.startYieldCycle = function () {
         this.yield();
     };
     RepliqServer.prototype.yieldEvery = function (ms) {
         var _this = this;
-        if (this.yielding)
+        if (this.yieldTimer)
             this.stopYielding();
-        this.yielding = setInterval(function () { return _this.yield(); }, ms);
-    };
-    RepliqServer.prototype.notifyChanged = function () {
-        if (this.propagator)
-            this.yield();
+        this.yieldTimer = setInterval(function () { return _this.yield(); }, ms);
     };
     RepliqServer.prototype.stopYielding = function () {
-        if (this.yielding) {
-            clearInterval(this.yielding);
+        if (this.yieldTimer) {
+            clearInterval(this.yieldTimer);
         }
     };
+    RepliqServer.prototype.notifyChanged = function () {
+        if (this.propagator && (!this.yielding))
+            this.yield();
+    };
     RepliqServer.prototype.broadcastRound = function (round) {
+        debug("broadcasting round " + round.getServerNr());
         this.channel.emit("YieldPush", round.toJSON());
     };
     RepliqServer.prototype.onConnect = function () {

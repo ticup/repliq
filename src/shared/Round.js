@@ -18,6 +18,9 @@ var Round = (function () {
     Round.prototype.setServerNr = function (nr) {
         this.serverNr = nr;
     };
+    Round.prototype.getServerNr = function () {
+        return this.serverNr;
+    };
     Round.prototype.add = function (operation) {
         this.operations.push(operation);
     };

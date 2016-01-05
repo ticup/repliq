@@ -27,7 +27,7 @@ export class RepliqServer extends RepliqManager {
     private api: Api;
     private listeners: Listeners;
 
-    private yielding : NodeJS.Timer;
+    private yieldTimer : NodeJS.Timer;
     private propagator: boolean;
 
     // http server or port number, which will create its own http server.
@@ -80,12 +80,14 @@ export class RepliqServer extends RepliqManager {
         debug("YieldPull: received round");
         let round = Round.fromJSON(json, this);
         this.incoming.push(round);
-        //this.notifyChanged();
+        this.notifyChanged();
     }
 
 
 
     yield() {
+        console.assert(!this.yielding);
+        this.yielding = true;
         locald("yielding");
         var rounds = [];
 
@@ -110,31 +112,41 @@ export class RepliqServer extends RepliqManager {
 
             affectedExt.forEach((rep) => rep.emit("changedExternal"));
         }
+        this.yielding = false;
 
     }
 
+
+
+    // Yield Periodic Mode
+    // Propagates changes periodically, when yield is called.
     startYieldCycle() {
         this.yield()
     }
 
     yieldEvery(ms: number) {
-        if (this.yielding)
+        if (this.yieldTimer)
             this.stopYielding();
-        this.yielding = setInterval(() => this.yield(), ms);
-    }
-
-    public notifyChanged() {
-        if (this.propagator)
-            this.yield();
+        this.yieldTimer = setInterval(() => this.yield(), ms);
     }
 
     stopYielding() {
-        if (this.yielding) {
-            clearInterval(this.yielding);
+        if (this.yieldTimer) {
+            clearInterval(this.yieldTimer);
         }
     }
 
+    // Yield Propagator Mode
+    // Propagates changes instantly instead of waiting for yield.
+    public notifyChanged() {
+        if (this.propagator && (! this.yielding))
+            this.yield();
+    }
+
+
+
     broadcastRound(round: Round) {
+        debug("broadcasting round " + round.getServerNr());
         this.channel.emit("YieldPush", round.toJSON());
     }
 

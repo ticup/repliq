@@ -10,6 +10,7 @@ var io = require('socket.io-client');
 var Promise = require("bluebird");
 var com = require("../shared/Communication");
 var RepliqManager_1 = require("../shared/RepliqManager");
+var Round_1 = require("../shared/Round");
 var Operation_1 = require("../shared/Operation");
 var debug = Debug("Repliq:com:client");
 var RepliqClient = (function (_super) {
@@ -17,16 +18,29 @@ var RepliqClient = (function (_super) {
     function RepliqClient(host, schema) {
         this.channel = io(host, { forceNew: true });
         this.incoming = [];
+        this.setupYieldPush();
         _super.call(this, schema);
     }
+    RepliqClient.prototype.setupYieldPush = function () {
+        var _this = this;
+        this.channel.on("YieldPush", function (round) { return _this.handleYieldPull(round); });
+    };
+    RepliqClient.prototype.handleYieldPull = function (json) {
+        debug("YieldPull: received round");
+        var round = Round_1.Round.fromJSON(json, this);
+        this.incoming.push(round);
+    };
     RepliqClient.prototype.onConnect = function () {
         var _this = this;
-        return new Promise(function (resolve) {
-            _this.channel.on("connect", function () {
-                debug("client connected");
-                resolve(true);
+        if (typeof this.onConnectP === "undefined") {
+            this.onConnectP = new Promise(function (resolve) {
+                _this.channel.on("connect", function () {
+                    debug("client connected");
+                    resolve(true);
+                });
             });
-        });
+        }
+        return this.onConnectP;
     };
     RepliqClient.prototype.send = function (selector) {
         var _this = this;

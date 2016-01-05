@@ -38,6 +38,10 @@ export class Round {
         this.serverNr = nr;
     }
 
+    getServerNr() {
+        return this.serverNr;
+    }
+
     add(operation: Operation) {
         this.operations.push(operation);
     }
