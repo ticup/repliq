@@ -39,6 +39,9 @@ export class RepliqManager {
     protected yielding : boolean;
 
 
+    private templateIds: {[id: string]: number};
+
+
     constructor(schema?: RepliqTemplateMap) {
         this.id = guid.v4();
         this.roundNr = 0;
@@ -50,6 +53,7 @@ export class RepliqManager {
         this.confirmed =[];
         this.incoming = [];
         this.replaying = false;
+        this.templateIds = {};
         if (schema) {
             this.declareAll(schema);
         }
@@ -66,6 +70,7 @@ export class RepliqManager {
     declare(template: typeof Repliq) {
         template.id = computeHash(template);
         this.templates[template.getId()] = template;
+        this.templateIds[template.getId()] = 0;
     }
 
     declareAll(templates: RepliqTemplateMap) {
@@ -99,6 +104,13 @@ export class RepliqManager {
 
     getRepliqData(id: string) {
         return this.repliqsData[id];
+    }
+
+    getNextTemplateId(id: string) {
+        console.assert(typeof this.templateIds[id] !== "undefined");
+        let val = this.templateIds[id];
+        this.templateIds[id] += 1;
+        return val;
     }
 
 

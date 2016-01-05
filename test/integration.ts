@@ -393,7 +393,7 @@ describe("Repliq", () => {
                     setFoo(val) {
                         this.set("foo", val);
                         return val;
-                    }};
+                    }}
                 let server = new Server(port);
                 let client = new Client(host);
 

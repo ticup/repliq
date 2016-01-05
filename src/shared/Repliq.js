@@ -15,7 +15,7 @@ var Repliq = (function (_super) {
         this.manager = manager;
         this.data = data;
         this.template = template;
-        this.id = id ? id : clientId + "@" + this.getTemplate().getId() + ":" + this.getTemplate().curId++;
+        this.id = id ? id : clientId + "@" + this.getTemplate().getId() + ":" + manager.getNextTemplateId(template.getId());
     }
     Repliq.stub = function () {
         var data = new RepliqData_1.RepliqData({});
@@ -24,9 +24,6 @@ var Repliq = (function (_super) {
     };
     Repliq.getId = function () {
         return this.id;
-    };
-    Repliq.getNextId = function () {
-        return this.curId++;
     };
     Repliq.prototype.getMethod = function (op) {
         return this[op];
@@ -53,7 +50,6 @@ var Repliq = (function (_super) {
     Repliq.prototype.committedKeys = function () {
         return this.data.getCommittedKeys();
     };
-    Repliq.curId = 0;
     Repliq.CHANGE_EXTERNAL = "change_external";
     Repliq.CHANGE = "change";
     Repliq.isRepliq = true;

@@ -415,7 +415,6 @@ describe("Repliq", function () {
                         ], FooRepliq.prototype, "setFoo", Object.getOwnPropertyDescriptor(FooRepliq.prototype, "setFoo")));
                     return FooRepliq;
                 })(index_1.Repliq);
-                ;
                 var server = new index_2.RepliqServer(port);
                 var client = new index_2.RepliqClient(host);
                 server.declare(FooRepliq);

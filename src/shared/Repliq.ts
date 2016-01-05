@@ -9,9 +9,6 @@ import {EventEmitter} from "events";
 export class Repliq extends EventEmitter {
     public static id: number;
 
-    private static curId: number = 0;
-
-
     public static CHANGE_EXTERNAL = "change_external";
     public static CHANGE = "change";
 
@@ -25,10 +22,6 @@ export class Repliq extends EventEmitter {
 
     static getId() {
         return this.id;
-    }
-
-    static getNextId() {
-        return this.curId++;
     }
 
     private clientId: ClientId;
@@ -45,7 +38,7 @@ export class Repliq extends EventEmitter {
         this.data = data;
         this.template = template;
 
-        this.id = id ? id : clientId + "@" + this.getTemplate().getId() + ":" + this.getTemplate().curId++;
+        this.id = id ? id : clientId + "@" + this.getTemplate().getId() + ":" + manager.getNextTemplateId(template.getId());
     }
 
 

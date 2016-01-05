@@ -19,6 +19,7 @@ var RepliqManager = (function () {
         this.confirmed = [];
         this.incoming = [];
         this.replaying = false;
+        this.templateIds = {};
         if (schema) {
             this.declareAll(schema);
         }
@@ -33,6 +34,7 @@ var RepliqManager = (function () {
     RepliqManager.prototype.declare = function (template) {
         template.id = computeHash(template);
         this.templates[template.getId()] = template;
+        this.templateIds[template.getId()] = 0;
     };
     RepliqManager.prototype.declareAll = function (templates) {
         var _this = this;
@@ -61,6 +63,12 @@ var RepliqManager = (function () {
     };
     RepliqManager.prototype.getRepliqData = function (id) {
         return this.repliqsData[id];
+    };
+    RepliqManager.prototype.getNextTemplateId = function (id) {
+        console.assert(typeof this.templateIds[id] !== "undefined");
+        var val = this.templateIds[id];
+        this.templateIds[id] += 1;
+        return val;
     };
     RepliqManager.prototype.call = function (repliq, data, selector, fun, args) {
         debug("calling " + selector + "(" + args + ")");
