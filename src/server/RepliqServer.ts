@@ -28,7 +28,7 @@ export class RepliqServer extends RepliqManager {
     private listeners: Listeners;
 
     private yieldTimer : NodeJS.Timer;
-    private propagator: boolean;
+    private propagator : boolean;
 
     // http server or port number, which will create its own http server.
     constructor(app?: http.Server | number, schema?: RepliqTemplateMap, yieldCycle?: number) {
@@ -110,7 +110,7 @@ export class RepliqServer extends RepliqManager {
             this.incoming.forEach((r) => this.broadcastRound(r));
             this.incoming = [];
 
-            affectedExt.forEach((rep) => rep.emit("changedExternal"));
+            affectedExt.forEach((rep) => rep.emit(Repliq.CHANGE_EXTERNAL));
         }
         this.yielding = false;
 

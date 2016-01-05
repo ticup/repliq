@@ -36,6 +36,9 @@ export class RepliqManager {
 
     protected incoming : Round[];
 
+    protected yielding : boolean;
+
+
     constructor(schema?: RepliqTemplateMap) {
         this.id = guid.v4();
         this.roundNr = 0;
@@ -121,6 +124,7 @@ export class RepliqManager {
         if (startReplay) {
             this.replaying = false;
             this.notifyChanged();
+            repliq.emit(Repliq.CHANGE);
         }
         return res;
 
@@ -177,8 +181,7 @@ export class RepliqManager {
     }
 
 
-    public notifyChanged() {
-
+    protected notifyChanged() {
     }
 
 

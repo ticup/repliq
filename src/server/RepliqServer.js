@@ -8,6 +8,7 @@ var __extends = (this && this.__extends) || function (d, b) {
 var Debug = require("debug");
 var io = require("socket.io");
 var com = require("../shared/Communication");
+var Repliq_1 = require("../shared/Repliq");
 var RepliqManager_1 = require("../shared/RepliqManager");
 var Listeners_1 = require("./Listeners");
 var Round_1 = require("../shared/Round");
@@ -84,7 +85,7 @@ var RepliqServer = (function (_super) {
             var affectedExt = this.replay(this.incoming);
             this.incoming.forEach(function (r) { return _this.broadcastRound(r); });
             this.incoming = [];
-            affectedExt.forEach(function (rep) { return rep.emit("changedExternal"); });
+            affectedExt.forEach(function (rep) { return rep.emit(Repliq_1.Repliq.CHANGE_EXTERNAL); });
         }
         this.yielding = false;
     };

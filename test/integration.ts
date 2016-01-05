@@ -347,7 +347,7 @@ describe("Repliq", () => {
         });
 
 
-        describe("repliq.on('changedExternal', fun) on client", () => {
+        describe("repliq.on('changeExternal', fun) on client", () => {
             it("should call the function when the Repliq is altered by an external source", (done) => {
                 class FooRepliq extends Repliq{
                     public foo = "bar";
@@ -375,7 +375,7 @@ describe("Repliq", () => {
                     s.setFoo("bar");
                     server.yield();
                     delay(() => {
-                        r.on("changedExternal", () => {
+                        r.on(Repliq.CHANGE_EXTERNAL, () => {
                             stop(server, client);
                             done();
                         });
@@ -383,9 +383,9 @@ describe("Repliq", () => {
                     });
                 });
             });
-        })
+        });
 
-        describe("repliq.on('changedExternal', fun) on server", () => {
+        describe("repliq.on('changeExternal', fun) on server", () => {
             it("should call the function when the Repliq is altered by an external source", (done) => {
                 class FooRepliq extends Repliq{
                     public foo = "bar";
@@ -405,7 +405,7 @@ describe("Repliq", () => {
                     return s;
                 }});
 
-                s.on("changedExternal", () => {
+                s.on(Repliq.CHANGE_EXTERNAL, () => {
                     stop(server, client);
                     done();
                 });
@@ -414,7 +414,6 @@ describe("Repliq", () => {
                 //let r = client.create(FooRepliq, { foo: "foo" });
                 client.send("getRepliq").then((r: FooRepliq) => {
                     should.exist(r);
-
                     r.setFoo("bar");
                     client.yield();
                 });

@@ -11,6 +11,10 @@ export class Repliq extends EventEmitter {
 
     private static curId: number = 0;
 
+
+    public static CHANGE_EXTERNAL = "change_external";
+    public static CHANGE = "change";
+
     static isRepliq : boolean = true;
 
     static stub() {

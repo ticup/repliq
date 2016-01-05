@@ -1,5 +1,6 @@
 /// <reference path="references.d.ts" />
 /// <reference path="../../typings/tsd.d.ts" />
+var Repliq_1 = require("./Repliq");
 var Operation_1 = require("./Operation");
 var Round_1 = require("./Round");
 var Debug = require("debug");
@@ -74,6 +75,7 @@ var RepliqManager = (function () {
         if (startReplay) {
             this.replaying = false;
             this.notifyChanged();
+            repliq.emit(Repliq_1.Repliq.CHANGE);
         }
         return res;
     };

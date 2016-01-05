@@ -53,16 +53,19 @@ var LightComponent = (function (_super) {
         var _this = this;
         client.send("status", function (status) {
             _this.setState({ status: status });
+            status.on("changed", function () {
+                _this.setState({ status: status });
+            });
         });
     };
     LightComponent.prototype.switchLight = function () {
         var status = this.state.status;
         var val = status.getVal();
         if (val === "off") {
-            status.on();
+            status.turnOn();
         }
         else if (val === "on") {
-            status.off();
+            status.turnOff();
         }
     };
     LightComponent.prototype.render = function () {

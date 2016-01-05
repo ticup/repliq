@@ -10,6 +10,7 @@ var io = require('socket.io-client');
 var Promise = require("bluebird");
 var com = require("../shared/Communication");
 var RepliqManager_1 = require("../shared/RepliqManager");
+var Repliq_1 = require("../shared/Repliq");
 var Round_1 = require("../shared/Round");
 var Operation_1 = require("../shared/Operation");
 var debug = Debug("Repliq:com:client");
@@ -92,7 +93,7 @@ var RepliqClient = (function (_super) {
                 return _this.play(round);
             });
             this.replaying = false;
-            affectedExt.forEach(function (rep) { return rep.emit("changedExternal"); });
+            affectedExt.forEach(function (rep) { return rep.emit(Repliq_1.Repliq.CHANGE_EXTERNAL); });
         }
     };
     return RepliqClient;

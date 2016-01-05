@@ -18,20 +18,20 @@ var Status = (function (_super) {
     function Status() {
         _super.apply(this, arguments);
     }
-    Status.prototype.on = function () {
+    Status.prototype.turnOn = function () {
         this.setVal("on");
     };
-    Status.prototype.off = function () {
+    Status.prototype.turnOff = function () {
         this.setVal("off");
     };
-    Object.defineProperty(Status.prototype, "on",
+    Object.defineProperty(Status.prototype, "turnOn",
         __decorate([
             index_1.sync
-        ], Status.prototype, "on", Object.getOwnPropertyDescriptor(Status.prototype, "on")));
-    Object.defineProperty(Status.prototype, "off",
+        ], Status.prototype, "turnOn", Object.getOwnPropertyDescriptor(Status.prototype, "turnOn")));
+    Object.defineProperty(Status.prototype, "turnOff",
         __decorate([
             index_1.sync
-        ], Status.prototype, "off", Object.getOwnPropertyDescriptor(Status.prototype, "off")));
+        ], Status.prototype, "turnOff", Object.getOwnPropertyDescriptor(Status.prototype, "turnOff")));
     return Status;
 })(index_1.Register);
 exports.Status = Status;

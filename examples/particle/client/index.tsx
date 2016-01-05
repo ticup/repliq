@@ -70,6 +70,9 @@ class LightComponent extends React.Component<{}, {status: Status}>{
     componentDidMount() {
         client.send("status", (status) => {
             this.setState({status});
+            status.on("changed", () => {
+                this.setState({status});
+            });
         });
     }
 
@@ -77,9 +80,9 @@ class LightComponent extends React.Component<{}, {status: Status}>{
         let status = this.state.status;
         let val = status.getVal();
         if (val === "off") {
-            status.on();
+            status.turnOn();
         } else if (val === "on") {
-            status.off();
+            status.turnOff();
         }
     }
 

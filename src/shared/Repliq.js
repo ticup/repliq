@@ -54,6 +54,8 @@ var Repliq = (function (_super) {
         return this.data.getCommittedKeys();
     };
     Repliq.curId = 0;
+    Repliq.CHANGE_EXTERNAL = "change_external";
+    Repliq.CHANGE = "change";
     Repliq.isRepliq = true;
     return Repliq;
 })(events_1.EventEmitter);

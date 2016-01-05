@@ -356,7 +356,7 @@ describe("Repliq", function () {
                 });
             });
         });
-        describe("repliq.on('changedExternal', fun) on client", function () {
+        describe("repliq.on('changeExternal', fun) on client", function () {
             it("should call the function when the Repliq is altered by an external source", function (done) {
                 var FooRepliq = (function (_super) {
                     __extends(FooRepliq, _super);
@@ -388,7 +388,7 @@ describe("Repliq", function () {
                     s.setFoo("bar");
                     server.yield();
                     delay(function () {
-                        r.on("changedExternal", function () {
+                        r.on(index_1.Repliq.CHANGE_EXTERNAL, function () {
                             stop(server, client);
                             done();
                         });
@@ -397,7 +397,7 @@ describe("Repliq", function () {
                 });
             });
         });
-        describe("repliq.on('changedExternal', fun) on server", function () {
+        describe("repliq.on('changeExternal', fun) on server", function () {
             it("should call the function when the Repliq is altered by an external source", function (done) {
                 var FooRepliq = (function (_super) {
                     __extends(FooRepliq, _super);
@@ -424,7 +424,7 @@ describe("Repliq", function () {
                 server.export({ getRepliq: function () {
                         return s;
                     } });
-                s.on("changedExternal", function () {
+                s.on(index_1.Repliq.CHANGE_EXTERNAL, function () {
                     stop(server, client);
                     done();
                 });
