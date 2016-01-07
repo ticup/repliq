@@ -4,6 +4,7 @@
   "description": "Realtime & Offline Shared Data",
   "main": "index.js",
   "repository": "https://github.com/ticup/repliq",
+  "node": " 4.2.3",
   "dependencies": {
     "bluebird": "^3.0.5",
     "debug": "^2.2.0",
