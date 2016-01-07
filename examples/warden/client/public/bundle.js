@@ -16,7 +16,7 @@ var MainComponent = (function (_super) {
         _super.apply(this, arguments);
     }
     MainComponent.prototype.render = function () {
-        return (React.createElement("div", {"className": "ui three column centered stackable grid"}, React.createElement(TimeComponent, {"getTime": function () { return client.send("startTime"); }, "title": "Start Time"}), React.createElement(TimeComponent, {"getTime": function () { return client.send("endTime"); }, "title": "End Time"}), React.createElement(LightComponent, null)));
+        return (React.createElement("div", {"className": "ui three column centered stackable grid"}, React.createElement("div", {"className": "ui column"}, React.createElement("div", {"className": "ui stackable vertically divided grid"}, React.createElement(LightComponent, null), React.createElement(TimeComponent, {"getTime": function () { return client.send("startTime"); }, "title": "Start Time"}), React.createElement(TimeComponent, {"getTime": function () { return client.send("endTime"); }, "title": "End Time"})))));
     };
     return MainComponent;
 })(React.Component);
@@ -44,7 +44,7 @@ var TimeComponent = (function (_super) {
     };
     TimeComponent.prototype.render = function () {
         var _this = this;
-        return (React.createElement("div", {"className": "row"}, React.createElement("div", {"className": "column"}, React.createElement("div", {"className": "segment"}, React.createElement("h4", null, " ", this.props.title, " "), React.createElement("div", {"className": "ui action left icon labeled input"}, React.createElement("i", {"className": "time icon"}), React.createElement("input", {"ref": "hour", "type": "text", "name": "Start Hour", "placeholder": "hour"}), React.createElement("input", {"ref": "minutes", "type": "text", "name": "Start Minute", "placeholder": "minutes"}), React.createElement("div", {"className": "ui teal button", "onClick": function (e) { return _this.submit(); }}, "Set!")), React.createElement("div", {"className": "floating ui " + (this.state.time.confirmed() ? "teal" : "red") + " label"}, " ", this.state.time.getHour(), ":", this.state.time.getMinutes(), " ")))));
+        return (React.createElement("div", {"className": "row"}, React.createElement("div", {"className": "column"}, React.createElement("div", {"className": "segment"}, React.createElement("div", {"className": "ui big label"}, " ", this.props.title, " "), React.createElement("div", {"className": "ui " + (this.state.time.confirmed() ? "" : "red") + " big label"}, " ", this.state.time.getHour(), ":", this.state.time.getMinutes(), " "), React.createElement("div", {"className": "ui action left icon labeled input"}, React.createElement("i", {"className": "time icon"}), React.createElement("input", {"ref": "hour", "type": "text", "name": "Start Hour", "placeholder": "hour"}), React.createElement("input", {"ref": "minutes", "type": "text", "name": "Start Minute", "placeholder": "minutes"}), React.createElement("div", {"className": "ui teal button", "onClick": function (e) { return _this.submit(); }}, "Set!"))))));
     };
     return TimeComponent;
 })(React.Component);
@@ -75,7 +75,7 @@ var LightComponent = (function (_super) {
     };
     LightComponent.prototype.render = function () {
         var _this = this;
-        return (React.createElement("div", {"className": "row"}, React.createElement("div", {"className": "column"}, React.createElement("h4", null, "Status"), React.createElement("div", {"onClick": function (e) { return _this.switchLight(); }, "className": "ui " + (this.state.status.confirmed() ? "teal" : "red") + " button"}, this.state.status.getVal()))));
+        return (React.createElement("div", {"className": "row"}, React.createElement("div", {"className": "column"}, React.createElement("div", {"className": "ui big label"}, "Status"), React.createElement("div", {"onClick": function (e) { return _this.switchLight(); }, "className": "ui " + (this.state.status.confirmed() ? "teal" : "red") + " button"}, this.state.status.getVal())), React.createElement("div", {"className": "ui divider"})));
     };
     return LightComponent;
 })(React.Component);
@@ -37081,6 +37081,7 @@ var __extends = (this && this.__extends) || function (d, b) {
 };
 var RepliqData_1 = require("./RepliqData");
 var events_1 = require("events");
+var immutable_1 = require("immutable");
 var Repliq = (function (_super) {
     __extends(Repliq, _super);
     function Repliq(template, data, manager, clientId, id) {
@@ -37159,13 +37160,32 @@ function sync(target, key, prop) {
             for (var _i = 0; _i < arguments.length; _i++) {
                 args[_i - 0] = arguments[_i];
             }
+            args.forEach(validate);
             return this.call(key, prop.value, args);
         }
     };
 }
 exports.sync = sync;
+function validate(val) {
+    var type = typeof val;
+    if (type === "number" || type === "string" || type == "boolean" || type == "undefined") {
+        return true;
+    }
+    if (type === "object") {
+        if (val instanceof immutable_1.List) {
+            return true;
+        }
+        if (val instanceof Array) {
+            return true;
+        }
+        if (val instanceof Repliq) {
+            return true;
+        }
+    }
+    throw Error("cannot use " + val + " as an argument to a repliq method");
+}
 
-},{"./RepliqData":219,"events":421}],219:[function(require,module,exports){
+},{"./RepliqData":219,"events":421,"immutable":7}],219:[function(require,module,exports){
 var RepliqData = (function () {
     function RepliqData() {
         this.committed = {};

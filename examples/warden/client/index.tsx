@@ -15,9 +15,13 @@ class MainComponent extends React.Component<{}, {}> {
     render() {
         return (
             <div className="ui three column centered stackable grid">
-                <TimeComponent getTime={() => client.send("startTime")} title="Start Time"/>
-                <TimeComponent getTime={() => client.send("endTime")}   title="End Time"/>
-                <LightComponent />
+                <div className="ui column">
+                    <div className="ui stackable vertically divided grid">
+                        <LightComponent />
+                        <TimeComponent getTime={() => client.send("startTime")} title="Start Time"/>
+                        <TimeComponent getTime={() => client.send("endTime")}   title="End Time"/>
+                    </div>
+                </div>
             </div>
 
         );
@@ -54,14 +58,14 @@ class TimeComponent extends React.Component<{getTime():Promise<Time>, title: Str
             <div className="row">
                 <div className="column">
                     <div className="segment">
-                        <h4> {this.props.title} </h4>
+                        <div className="ui big label"> {this.props.title} </div>
+                        <div className={"ui " + (this.state.time.confirmed() ? "" : "red") + " big label"}> {this.state.time.getHour()}:{this.state.time.getMinutes()} </div>
                         <div className="ui action left icon labeled input">
                             <i className="time icon"></i>
                             <input ref="hour" type="text" name="Start Hour" placeholder="hour"></input>
                             <input ref="minutes" type="text" name="Start Minute" placeholder="minutes"></input>
                             <div className="ui teal button" onClick={(e)=>this.submit()}>Set!</div>
                         </div>
-                        <div className={"floating ui " + (this.state.time.confirmed() ? "teal" : "red") + " label"}> {this.state.time.getHour()}:{this.state.time.getMinutes()} </div>
                     </div>
                 </div>
             </div>
@@ -102,9 +106,10 @@ class LightComponent extends React.Component<{}, LightComponentState>{
         return (
             <div className="row">
                 <div className="column">
-                    <h4>Status</h4>
+                    <div className="ui big label">Status</div>
                     <div onClick={(e) => this.switchLight()} className={"ui " + (this.state.status.confirmed() ? "teal" : "red") + " button"}>{this.state.status.getVal()}</div>
                 </div>
+                <div className="ui divider" />
             </div>
         );
     }
