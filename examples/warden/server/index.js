@@ -4,7 +4,7 @@ var scripts = require("./script");
 var RepliqServer_1 = require("../../../src/server/RepliqServer");
 var app = express();
 app.use(express.static(__dirname + '/../client/public'));
-var hserv = app.listen(8000);
+var hserv = app.listen(80);
 var server = new RepliqServer_1.RepliqServer(hserv, { Status: Schema_1.Status });
 var _status = server.create(Schema_1.Status);
 _status.setVal("offline");

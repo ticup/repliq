@@ -10,7 +10,7 @@ import {RepliqServer} from "../../../src/server/RepliqServer";
 
 let app = express();
 app.use(express.static(__dirname + '/../client/public'));
-let hserv = app.listen(8000);
+let hserv = app.listen(80);
 
 let server = new RepliqServer(hserv, {Status});
 
