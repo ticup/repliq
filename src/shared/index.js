@@ -1,4 +1,3 @@
-///<reference path="./references.d.ts" />
 var immutable_1 = require("immutable");
 exports.List = immutable_1.List;
 exports.is = immutable_1.is;

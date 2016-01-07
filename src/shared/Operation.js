@@ -1,4 +1,3 @@
-/// <reference path="references.d.ts" />
 var Communication_1 = require("./Communication");
 var Operation = (function () {
     function Operation(targetId, selector, args) {

@@ -1,4 +1,3 @@
-///<reference path="./references.d.ts" />
 var Operation_1 = require("./Operation");
 var Round = (function () {
     function Round(originNr, originId, serverNr, operations) {

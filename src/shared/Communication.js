@@ -1,4 +1,3 @@
-///<reference path="./references.d.ts" />
 var Repliq_1 = require("./Repliq");
 var immutable_1 = require("immutable");
 function serializeArgs(args) {

@@ -1,4 +1,3 @@
-/// <reference path="references.d.ts" />
 var RepliqData = (function () {
     function RepliqData(args) {
         this.committed = {};

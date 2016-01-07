@@ -1,5 +1,3 @@
-/// <reference path="references.d.ts" />
-/// <reference path="../../typings/tsd.d.ts" />
 var Repliq_1 = require("./Repliq");
 var Operation_1 = require("./Operation");
 var Round_1 = require("./Round");

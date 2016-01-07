@@ -1,5 +1,3 @@
-///<reference path="../typings/eventsource.d.ts" />
-///<reference path="../typings/tsd.d.ts" />
 var request = require("request");
 var schedule = require('node-schedule');
 var spark = require('spark');
