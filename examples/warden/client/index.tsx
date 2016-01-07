@@ -14,9 +14,9 @@ let client = new RepliqClient({Status, Time}, 1000);
 class MainComponent extends React.Component<{}, {}> {
     render() {
         return (
-            <div className="ui one column stackable grid">
+            <div className="ui three column centered stackable grid">
                 <TimeComponent getTime={() => client.send("startTime")} title="Start Time"/>
-                <TimeComponent getTime={() => client.send("endTime")} title="End Time"/>
+                <TimeComponent getTime={() => client.send("endTime")}   title="End Time"/>
                 <LightComponent />
             </div>
 
@@ -42,8 +42,8 @@ class TimeComponent extends React.Component<{getTime():Promise<Time>, title: Str
     }
 
     submit() {
-        let hour = ReactDOM.findDOMNode<HTMLInputElement>(this.refs["hour"]).valueAsNumber;
-        let minutes = ReactDOM.findDOMNode<HTMLInputElement>(this.refs["minutes"]).valueAsNumber;
+        let hour = parseInt(ReactDOM.findDOMNode<HTMLInputElement>(this.refs["hour"]).value, 10);
+        let minutes = parseInt(ReactDOM.findDOMNode<HTMLInputElement>(this.refs["minutes"]).value, 10);
         this.state.time.setHour(hour);
         this.state.time.setMinutes(minutes);
         client.yield();
@@ -53,12 +53,15 @@ class TimeComponent extends React.Component<{getTime():Promise<Time>, title: Str
         return (
             <div className="row">
                 <div className="column">
-                    <h4> {this.props.title} -- {this.state.time.getHour()}:{this.state.time.getMinutes()}h</h4>
-                    <div className="ui action left icon labeled input">
-                        <i className="time icon"></i>
-                        <input ref="hour" type="text" name="Start Hour" placeholder="hour"></input>
-                        <input ref="minutes" type="text" name="Start Minute" placeholder="minutes"></input>
-                        <div className="ui teal button" onClick={(e)=>this.submit()}>Set!</div>
+                    <div className="segment">
+                        <h4> {this.props.title} </h4>
+                        <div className="ui action left icon labeled input">
+                            <i className="time icon"></i>
+                            <input ref="hour" type="text" name="Start Hour" placeholder="hour"></input>
+                            <input ref="minutes" type="text" name="Start Minute" placeholder="minutes"></input>
+                            <div className="ui teal button" onClick={(e)=>this.submit()}>Set!</div>
+                        </div>
+                        <div className={"floating ui " + (this.state.time.confirmed() ? "teal" : "red") + " label"}> {this.state.time.getHour()}:{this.state.time.getMinutes()} </div>
                     </div>
                 </div>
             </div>

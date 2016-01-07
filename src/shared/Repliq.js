@@ -5,6 +5,7 @@ var __extends = (this && this.__extends) || function (d, b) {
 };
 var RepliqData_1 = require("./RepliqData");
 var events_1 = require("events");
+var immutable_1 = require("immutable");
 var Repliq = (function (_super) {
     __extends(Repliq, _super);
     function Repliq(template, data, manager, clientId, id) {
@@ -35,6 +36,9 @@ var Repliq = (function (_super) {
                 return this.getMethod(op).call(args);
             };
             ;
+            Stub.prototype.confirmed = function () {
+                return false;
+            };
             return Stub;
         })(this);
         return new Stub(this, data);
@@ -80,9 +84,28 @@ function sync(target, key, prop) {
             for (var _i = 0; _i < arguments.length; _i++) {
                 args[_i - 0] = arguments[_i];
             }
+            args.forEach(validate);
             return this.call(key, prop.value, args);
         }
     };
 }
 exports.sync = sync;
+function validate(val) {
+    var type = typeof val;
+    if (type === "number" || type === "string" || type == "boolean" || type == "undefined") {
+        return true;
+    }
+    if (type === "object") {
+        if (val instanceof immutable_1.List) {
+            return true;
+        }
+        if (val instanceof Array) {
+            return true;
+        }
+        if (val instanceof Repliq) {
+            return true;
+        }
+    }
+    throw Error("cannot use " + val + " as an argument to a repliq method");
+}
 //# sourceMappingURL=Repliq.js.map

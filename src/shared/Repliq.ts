@@ -5,6 +5,7 @@ import {RepliqManager} from "./RepliqManager";
 import {RepliqData} from "./RepliqData";
 import {ClientId} from "./Types";
 import {EventEmitter} from "events";
+import {List} from "immutable";
 
 export class Repliq extends EventEmitter {
     public static id: number;
@@ -30,6 +31,10 @@ export class Repliq extends EventEmitter {
             call(op, ...args) {
                 return this.getMethod(op).call(args);
             };
+
+            confirmed() {
+                return false;
+            }
         }
 
         return new Stub(this, data);
@@ -112,7 +117,27 @@ export class Repliq extends EventEmitter {
 export function sync(target: any, key: string, prop: any) {
     return {
         value: function (...args: any[]) {
+            args.forEach(validate);
             return this.call(key, prop.value, args);
         }
     };
+}
+
+function validate(val) {
+    let type = typeof val;
+    if (type === "number" || type === "string" || type == "boolean" || type == "undefined") {
+        return true;
+    }
+    if (type === "object") {
+        if (val instanceof List) {
+            return true;
+        }
+        if (val instanceof Array) {
+            return true;
+        }
+        if (val instanceof Repliq) {
+            return true;
+        }
+    }
+    throw Error("cannot use " + val + " as an argument to a repliq method");
 }

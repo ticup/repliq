@@ -16,7 +16,7 @@ var MainComponent = (function (_super) {
         _super.apply(this, arguments);
     }
     MainComponent.prototype.render = function () {
-        return (React.createElement("div", {"className": "ui one column stackable grid"}, React.createElement(TimeComponent, {"getTime": function () { return client.send("startTime"); }, "title": "Start Time"}), React.createElement(TimeComponent, {"getTime": function () { return client.send("endTime"); }, "title": "End Time"}), React.createElement(LightComponent, null)));
+        return (React.createElement("div", {"className": "ui three column centered stackable grid"}, React.createElement(TimeComponent, {"getTime": function () { return client.send("startTime"); }, "title": "Start Time"}), React.createElement(TimeComponent, {"getTime": function () { return client.send("endTime"); }, "title": "End Time"}), React.createElement(LightComponent, null)));
     };
     return MainComponent;
 })(React.Component);
@@ -36,15 +36,15 @@ var TimeComponent = (function (_super) {
         });
     };
     TimeComponent.prototype.submit = function () {
-        var hour = ReactDOM.findDOMNode(this.refs["hour"]).valueAsNumber;
-        var minutes = ReactDOM.findDOMNode(this.refs["minutes"]).valueAsNumber;
+        var hour = parseInt(ReactDOM.findDOMNode(this.refs["hour"]).value, 10);
+        var minutes = parseInt(ReactDOM.findDOMNode(this.refs["minutes"]).value, 10);
         this.state.time.setHour(hour);
         this.state.time.setMinutes(minutes);
         client.yield();
     };
     TimeComponent.prototype.render = function () {
         var _this = this;
-        return (React.createElement("div", {"className": "row"}, React.createElement("div", {"className": "column"}, React.createElement("h4", null, " ", this.props.title, " -- ", this.state.time.getHour(), ":", this.state.time.getMinutes(), "h"), React.createElement("div", {"className": "ui action left icon labeled input"}, React.createElement("i", {"className": "time icon"}), React.createElement("input", {"ref": "hour", "type": "text", "name": "Start Hour", "placeholder": "hour"}), React.createElement("input", {"ref": "minutes", "type": "text", "name": "Start Minute", "placeholder": "minutes"}), React.createElement("div", {"className": "ui teal button", "onClick": function (e) { return _this.submit(); }}, "Set!")))));
+        return (React.createElement("div", {"className": "row"}, React.createElement("div", {"className": "column"}, React.createElement("div", {"className": "segment"}, React.createElement("h4", null, " ", this.props.title, " "), React.createElement("div", {"className": "ui action left icon labeled input"}, React.createElement("i", {"className": "time icon"}), React.createElement("input", {"ref": "hour", "type": "text", "name": "Start Hour", "placeholder": "hour"}), React.createElement("input", {"ref": "minutes", "type": "text", "name": "Start Minute", "placeholder": "minutes"}), React.createElement("div", {"className": "ui teal button", "onClick": function (e) { return _this.submit(); }}, "Set!")), React.createElement("div", {"className": "floating ui " + (this.state.time.confirmed() ? "teal" : "red") + " label"}, " ", this.state.time.getHour(), ":", this.state.time.getMinutes(), " ")))));
     };
     return TimeComponent;
 })(React.Component);
@@ -98,6 +98,7 @@ var Status = (function (_super) {
     __extends(Status, _super);
     function Status() {
         _super.apply(this, arguments);
+        this.value = "offline";
     }
     Status.prototype.turnOn = function () {
         this.setVal("on");
@@ -37110,6 +37111,9 @@ var Repliq = (function (_super) {
                 return this.getMethod(op).call(args);
             };
             ;
+            Stub.prototype.confirmed = function () {
+                return false;
+            };
             return Stub;
         })(this);
         return new Stub(this, data);

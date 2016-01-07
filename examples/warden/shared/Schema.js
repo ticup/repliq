@@ -14,6 +14,7 @@ var Status = (function (_super) {
     __extends(Status, _super);
     function Status() {
         _super.apply(this, arguments);
+        this.value = "offline";
     }
     Status.prototype.turnOn = function () {
         this.setVal("on");
