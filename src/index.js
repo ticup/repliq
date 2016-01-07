@@ -1,6 +1,3 @@
-/// <reference path="client/index" />
-/// <reference path="server/index" />
-/// <reference path="shared/Repliq" />
 var index_1 = require("./client/index");
 exports.RepliqClient = index_1.RepliqClient;
 var index_2 = require("./server/index");

@@ -1,19 +1,8 @@
 var RepliqData = (function () {
-    function RepliqData(args) {
+    function RepliqData() {
         this.committed = {};
         this.tentative = {};
-        this.init(args);
     }
-    RepliqData.prototype.init = function (props) {
-        var _this = this;
-        Object.keys(props).forEach(function (key) {
-            var val = props[key];
-            if (typeof val !== "function") {
-                _this.committed[key] = val;
-                _this.tentative[key] = val;
-            }
-        });
-    };
     RepliqData.prototype.get = function (key) {
         return this.getTentative(key);
     };
@@ -21,10 +10,16 @@ var RepliqData = (function () {
         return this.setTentative(key, val);
     };
     RepliqData.prototype.getTentative = function (key) {
-        return this.tentative[key];
+        var val = this.tentative[key];
+        if (typeof val === "undefined")
+            return this.committed[key];
+        return val;
     };
     RepliqData.prototype.setTentative = function (key, val) {
         return this.tentative[key] = val;
+    };
+    RepliqData.prototype.hasTentative = function () {
+        return Object.keys(this.tentative).length !== 0;
     };
     RepliqData.prototype.getKeys = function () {
         return Object.keys(this.tentative);
@@ -38,7 +33,8 @@ var RepliqData = (function () {
     RepliqData.prototype.commitValues = function () {
         var _this = this;
         this.getKeys().forEach(function (key) {
-            return _this.committed[key] = _this.tentative[key];
+            _this.committed[key] = _this.tentative[key];
+            delete _this.tentative[key];
         });
     };
     RepliqData.prototype.setToCommit = function () {

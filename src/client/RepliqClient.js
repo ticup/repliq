@@ -14,11 +14,11 @@ var Operation_1 = require("../shared/Operation");
 var debug = Debug("Repliq:com:client");
 var RepliqClient = (function (_super) {
     __extends(RepliqClient, _super);
-    function RepliqClient(host, schema) {
-        this.channel = io(host, { forceNew: true });
+    function RepliqClient(schema, yieldEvery) {
+        this.channel = io(null, { forceNew: true });
         this.incoming = [];
         this.setupYieldPush();
-        _super.call(this, schema);
+        _super.call(this, schema, yieldEvery);
     }
     RepliqClient.prototype.setupYieldPush = function () {
         var _this = this;

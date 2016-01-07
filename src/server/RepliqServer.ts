@@ -27,11 +27,10 @@ export class RepliqServer extends RepliqManager {
     private api: Api;
     private listeners: Listeners;
 
-    private yieldTimer : NodeJS.Timer;
     private propagator : boolean;
 
     // http server or port number, which will create its own http server.
-    constructor(app?: http.Server | number, schema?: RepliqTemplateMap, yieldCycle?: number) {
+    constructor(app?: http.Server | number, schema?: RepliqTemplateMap, yieldEvery?: number) {
         this.channel = io(app);
         //this.onConnect().then((socket: SocketIO.Socket) => {
         //    socket;
@@ -53,11 +52,9 @@ export class RepliqServer extends RepliqManager {
         });
         this.listeners = new Listeners();
 
-        super(schema);
+        super(schema, yieldEvery);
 
-        if (yieldCycle) {
-            this.yieldEvery(yieldCycle);
-        } else {
+        if (!yieldEvery) {
             this.propagator = true;
         }
     }
@@ -114,26 +111,6 @@ export class RepliqServer extends RepliqManager {
         }
         this.yielding = false;
 
-    }
-
-
-
-    // Yield Periodic Mode
-    // Propagates changes periodically, when yield is called.
-    startYieldCycle() {
-        this.yield()
-    }
-
-    yieldEvery(ms: number) {
-        if (this.yieldTimer)
-            this.stopYielding();
-        this.yieldTimer = setInterval(() => this.yield(), ms);
-    }
-
-    stopYielding() {
-        if (this.yieldTimer) {
-            clearInterval(this.yieldTimer);
-        }
     }
 
     // Yield Propagator Mode

@@ -7,21 +7,11 @@ export class RepliqData {
     private committed;
     private tentative;
 
-    constructor(args: Object) {
+    constructor() {
         this.committed = {};
         this.tentative = {};
-        this.init(args);
     }
 
-    init(props: Object) {
-        Object.keys(props).forEach((key) => {
-            let val = props[key];
-            if (typeof val !== "function") {
-                this.committed[key] = val;
-                this.tentative[key] = val;
-            }
-        });
-    }
 
     get(key) {
         return this.getTentative(key);
@@ -32,11 +22,18 @@ export class RepliqData {
     }
 
     getTentative(key) {
-        return this.tentative[key];
+        let val = this.tentative[key];
+        if (typeof val === "undefined")
+            return this.committed[key];
+        return val;
     }
 
     setTentative(key, val) {
         return this.tentative[key] = val;
+    }
+
+    hasTentative() {
+        return Object.keys(this.tentative).length !== 0;
     }
 
 
@@ -53,8 +50,9 @@ export class RepliqData {
     }
 
     commitValues() {
-        this.getKeys().forEach((key) =>
-            this.committed[key] = this.tentative[key]);
+        this.getKeys().forEach((key) => {
+            this.committed[key] = this.tentative[key];
+            delete this.tentative[key]; });
     }
 
     setToCommit() {

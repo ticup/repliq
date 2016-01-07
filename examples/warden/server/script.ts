@@ -4,7 +4,7 @@
 import * as EventSource from "eventsource";
 
 var request  = require("request");
-var schedule = require('node-schedule');
+var scheduler = require('node-schedule');
 
 var spark = require('spark');
 var util = require("util");
@@ -22,24 +22,14 @@ var surl = "https://api.particle.io/v1/devices/" + device_id + "/events/light?ac
 var device;
 
 
-function startTimeJob(start, end) {
-    schedule.scheduleJob({
-        hour: start[0],
-        minute: start[1],
-        second: start[2],
-        dayOfWeek: new schedule.Range(0, 6)
-    }, function () {
-        setLight("on").then((err, val) => {console.log(err); console.log(val)});
-    });
 
-    schedule.scheduleJob({
-        hour: end[0],
-        minute: end[1],
-        second: end[2],
-        dayOfWeek: new schedule.Range(0, 6)
-    }, function () {
-        setLight("off").then((err, val) => {console.log(err); console.log(val)});
-    });
+export function schedule(hour, minute, cb) {
+    return scheduler.scheduleJob({
+        hour: hour,
+        minute: minute,
+        second: 0,
+        dayOfWeek: new scheduler.Range(0, 6)
+    }, cb);
 }
 
 // arg = "on" || "off"
@@ -81,6 +71,8 @@ export function getLight() {
         });
     });
 }
+
+
 
 //export function createLightStream(cb) {
 //    spark.getDevice(device_id, function(err, device) {

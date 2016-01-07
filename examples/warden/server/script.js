@@ -1,5 +1,5 @@
 var request = require("request");
-var schedule = require('node-schedule');
+var scheduler = require('node-schedule');
 var spark = require('spark');
 var util = require("util");
 var Promise = require("bluebird");
@@ -9,24 +9,15 @@ var url = "https://api.particle.io/v1/devices/" + device_id + "/led?access_token
 var url2 = "https://api.particle.io/v1/devices/" + device_id + "/light?access_token=" + access_token;
 var surl = "https://api.particle.io/v1/devices/" + device_id + "/events/light?access_token=" + access_token;
 var device;
-function startTimeJob(start, end) {
-    schedule.scheduleJob({
-        hour: start[0],
-        minute: start[1],
-        second: start[2],
-        dayOfWeek: new schedule.Range(0, 6)
-    }, function () {
-        setLight("on").then(function (err, val) { console.log(err); console.log(val); });
-    });
-    schedule.scheduleJob({
-        hour: end[0],
-        minute: end[1],
-        second: end[2],
-        dayOfWeek: new schedule.Range(0, 6)
-    }, function () {
-        setLight("off").then(function (err, val) { console.log(err); console.log(val); });
-    });
+function schedule(hour, minute, cb) {
+    return scheduler.scheduleJob({
+        hour: hour,
+        minute: minute,
+        second: 0,
+        dayOfWeek: new scheduler.Range(0, 6)
+    }, cb);
 }
+exports.schedule = schedule;
 function setLight(arg) {
     return new Promise(function (resolve, reject) {
         device.callFunction("setLight", arg, function (err, data) {

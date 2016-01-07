@@ -14,7 +14,7 @@ var debug = Debug("Repliq:com:server");
 var locald = Debug("Repliq:server");
 var RepliqServer = (function (_super) {
     __extends(RepliqServer, _super);
-    function RepliqServer(app, schema, yieldCycle) {
+    function RepliqServer(app, schema, yieldEvery) {
         var _this = this;
         this.channel = io(app);
         this.channel.on("connect", function (socket) {
@@ -33,11 +33,8 @@ var RepliqServer = (function (_super) {
             debug("client reconnected");
         });
         this.listeners = new Listeners_1.Listeners();
-        _super.call(this, schema);
-        if (yieldCycle) {
-            this.yieldEvery(yieldCycle);
-        }
-        else {
+        _super.call(this, schema, yieldEvery);
+        if (!yieldEvery) {
             this.propagator = true;
         }
     }
@@ -86,20 +83,6 @@ var RepliqServer = (function (_super) {
             affectedExt.forEach(function (rep) { rep.emit(Repliq_1.Repliq.CHANGE_EXTERNAL); rep.emit(Repliq_1.Repliq.CHANGE); });
         }
         this.yielding = false;
-    };
-    RepliqServer.prototype.startYieldCycle = function () {
-        this.yield();
-    };
-    RepliqServer.prototype.yieldEvery = function (ms) {
-        var _this = this;
-        if (this.yieldTimer)
-            this.stopYielding();
-        this.yieldTimer = setInterval(function () { return _this.yield(); }, ms);
-    };
-    RepliqServer.prototype.stopYielding = function () {
-        if (this.yieldTimer) {
-            clearInterval(this.yieldTimer);
-        }
     };
     RepliqServer.prototype.notifyChanged = function () {
         if (this.propagator && (!this.yielding))

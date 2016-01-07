@@ -20,7 +20,7 @@ var Repliq = (function (_super) {
     };
     Repliq.stub = function (args) {
         if (args === void 0) { args = {}; }
-        var data = new RepliqData_1.RepliqData(args);
+        var data = new RepliqData_1.RepliqData();
         var repl = new this(this, data, null, null);
         var Stub = (function (_super) {
             __extends(Stub, _super);
@@ -47,6 +47,9 @@ var Repliq = (function (_super) {
     };
     Repliq.prototype.set = function (key, value) {
         return this.data.setTentative(key, value);
+    };
+    Repliq.prototype.confirmed = function () {
+        return !this.data.hasTentative();
     };
     Repliq.prototype.getCommit = function (key) {
         return this.data.getCommitted(key);

@@ -7,7 +7,6 @@
     "sourceMap": true,
     "jsx": "react",
     "target": "ES5",
-    "experimentalDecorators": true,
-    "outDir": "../build"
+    "experimentalDecorators": true
   }
 }

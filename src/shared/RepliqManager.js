@@ -6,7 +6,7 @@ var guid = require("node-uuid");
 var RepliqData_1 = require("./RepliqData");
 var debug = Debug("Repliq:local");
 var RepliqManager = (function () {
-    function RepliqManager(schema) {
+    function RepliqManager(schema, yieldEvery) {
         this.id = guid.v4();
         this.roundNr = 0;
         this.templates = {};
@@ -21,6 +21,8 @@ var RepliqManager = (function () {
         if (schema) {
             this.declareAll(schema);
         }
+        if (yieldEvery)
+            this.yieldEvery(yieldEvery);
     }
     RepliqManager.prototype.getId = function () {
         return this.id;
@@ -30,9 +32,10 @@ var RepliqManager = (function () {
         Object.keys(this.repliqsData).forEach(function (key) { return f(key, _this.repliqsData[key]); });
     };
     RepliqManager.prototype.declare = function (template) {
-        template.id = computeHash(template);
+        template.id = computeHash(template.prototype);
         this.templates[template.getId()] = template;
         this.templateIds[template.getId()] = 0;
+        debug("declaring template with id " + template.id);
     };
     RepliqManager.prototype.declareAll = function (templates) {
         var _this = this;
@@ -40,17 +43,32 @@ var RepliqManager = (function () {
     };
     RepliqManager.prototype.create = function (template, args) {
         if (args === void 0) { args = {}; }
-        var data = new RepliqData_1.RepliqData(args);
+        if (typeof this.getTemplate(template.getId()) == "undefined") {
+            throw new Error("cannot create a repliq that is not declared ");
+        }
+        this.replaying = true;
+        var data = new RepliqData_1.RepliqData();
         var repl = new template(template, data, this, this.id);
         this.repliqs[repl.getId()] = repl;
         this.repliqsData[repl.getId()] = data;
+        Object.keys(args).forEach(function (key) {
+            repl.set(key, args[key]);
+        });
+        data.commitValues();
+        this.replaying = false;
         return repl;
     };
     RepliqManager.prototype.add = function (template, args, id) {
-        var data = new RepliqData_1.RepliqData(args);
+        this.replaying = true;
+        var data = new RepliqData_1.RepliqData();
         var repl = new template(template, data, this, this.id, id);
         this.repliqs[repl.getId()] = repl;
         this.repliqsData[repl.getId()] = data;
+        Object.keys(args).forEach(function (key) {
+            repl.set(key, args[key]);
+        });
+        data.commitValues();
+        this.replaying = false;
         return repl;
     };
     RepliqManager.prototype.getTemplate = function (id) {
@@ -132,6 +150,18 @@ var RepliqManager = (function () {
     };
     RepliqManager.prototype.notifyChanged = function () {
     };
+    RepliqManager.prototype.yieldEvery = function (ms) {
+        var _this = this;
+        if (this.yieldTimer)
+            this.stopYielding();
+        this.yieldTimer = setInterval(function () { return _this.yield(); }, ms);
+    };
+    RepliqManager.prototype.stopYielding = function () {
+        if (this.yieldTimer) {
+            clearInterval(this.yieldTimer);
+        }
+    };
+    RepliqManager.prototype.yield = function () { throw Error("should be implemented by client/server"); };
     return RepliqManager;
 })();
 exports.RepliqManager = RepliqManager;
@@ -147,7 +177,7 @@ function computeHashString(str) {
     return hash;
 }
 function computeHash(obj) {
-    var str = Object.keys(obj).reduce(function (acc, key) { return Object.hasOwnProperty(key) ? (acc + key + obj[key].toString()) : ""; }, "");
+    var str = Object.keys(obj).reduce(function (acc, key) { return (obj.hasOwnProperty(key) ? (acc + key + obj[key].toString()) : ""); }, "");
     return computeHashString(str);
 }
 //# sourceMappingURL=RepliqManager.js.map

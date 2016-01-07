@@ -19,7 +19,7 @@ export class Repliq extends EventEmitter {
     }
 
     static stub(args = {}) : any {
-        let data = new RepliqData(args);
+        let data = new RepliqData();
         let repl = new this(this, data, null, null);
 
         class Stub extends this {
@@ -53,7 +53,6 @@ export class Repliq extends EventEmitter {
         this.manager = manager;
         this.data = data;
         this.template = template;
-
         this.id = id ? id : clientId + "@" + this.getTemplate().getId() + ":" + (manager ? manager.getNextTemplateId(template.getId()) : "0");
     }
 
@@ -71,6 +70,10 @@ export class Repliq extends EventEmitter {
 
     set(key, value) {
         return this.data.setTentative(key, value);
+    }
+
+    confirmed() {
+        return !this.data.hasTentative();
     }
 
     //set(key, val) {

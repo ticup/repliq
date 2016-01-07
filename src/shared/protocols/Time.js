@@ -10,21 +10,39 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 var Repliq_1 = require("../Repliq");
-var Register = (function (_super) {
-    __extends(Register, _super);
-    function Register() {
+var Time = (function (_super) {
+    __extends(Time, _super);
+    function Time() {
         _super.apply(this, arguments);
+        this.hour = 0;
+        this.minutes = 0;
     }
-    Register.prototype.setVal = function (value) {
-        return this.set("value", value);
+    Time.prototype.setTime = function (hour, minutes) {
+        this.setHour(hour);
+        this.setMinutes(minutes);
     };
-    Register.prototype.getVal = function () {
-        return this.get("value");
+    Time.prototype.setHour = function (hour) {
+        return this.set("hour", hour);
+    };
+    Time.prototype.setMinutes = function (minutes) {
+        return this.set("minutes", minutes);
+    };
+    Time.prototype.getHour = function () {
+        return this.get("hour");
+    };
+    Time.prototype.getMinutes = function () {
+        return this.get("minutes");
     };
     __decorate([
         Repliq_1.sync
-    ], Register.prototype, "setVal", null);
-    return Register;
+    ], Time.prototype, "setTime", null);
+    __decorate([
+        Repliq_1.sync
+    ], Time.prototype, "setHour", null);
+    __decorate([
+        Repliq_1.sync
+    ], Time.prototype, "setMinutes", null);
+    return Time;
 })(Repliq_1.Repliq);
-exports.Register = Register;
-//# sourceMappingURL=Register.js.map
+exports.Time = Time;
+//# sourceMappingURL=Time.js.map

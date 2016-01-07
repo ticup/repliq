@@ -16,7 +16,7 @@ export interface RepliqDataIterator {
 }
 
 export interface RepliqTemplateMap {
-    [name: string] : typeof Repliq;
+    [id: number] : typeof Repliq;
 }
 
 export class RepliqManager {
@@ -37,12 +37,13 @@ export class RepliqManager {
     protected incoming : Round[];
 
     protected yielding : boolean;
+    private yieldTimer : NodeJS.Timer;
 
 
     private templateIds: {[id: string]: number};
 
 
-    constructor(schema?: RepliqTemplateMap) {
+    constructor(schema?: RepliqTemplateMap, yieldEvery?: number) {
         this.id = guid.v4();
         this.roundNr = 0;
         this.templates = {};
@@ -57,6 +58,8 @@ export class RepliqManager {
         if (schema) {
             this.declareAll(schema);
         }
+        if (yieldEvery)
+            this.yieldEvery(yieldEvery);
     }
 
     getId(): ClientId {
@@ -68,9 +71,10 @@ export class RepliqManager {
     }
 
     declare(template: typeof Repliq) {
-        template.id = computeHash(template);
+        template.id = computeHash(template.prototype);
         this.templates[template.getId()] = template;
         this.templateIds[template.getId()] = 0;
+        debug("declaring template with id " + template.id);
     }
 
     declareAll(templates: RepliqTemplateMap) {
@@ -79,22 +83,37 @@ export class RepliqManager {
 
 
     create(template: typeof Repliq, args = {})  {
-        let data = new RepliqData(args);
+        if (typeof this.getTemplate(template.getId()) == "undefined") {
+            throw new Error("cannot create a repliq that is not declared ");
+        }
+        this.replaying = true;
+        let data = new RepliqData();
         let repl = new template(template, data, this, this.id);
         this.repliqs[repl.getId()] = repl;
         this.repliqsData[repl.getId()] = data;
+        Object.keys(args).forEach((key) => {
+            repl.set(key, args[key]);
+        });
+        data.commitValues();
+        this.replaying = false;
         return repl;
     }
 
     add(template: typeof Repliq, args, id: string) {
-        let data = new RepliqData(args);
+        this.replaying = true;
+        let data = new RepliqData();
         let repl = new template(template, data, this, this.id, id);
         this.repliqs[repl.getId()] = repl;
         this.repliqsData[repl.getId()] = data;
+        Object.keys(args).forEach((key) => {
+            repl.set(key, args[key]);
+        });
+        data.commitValues();
+        this.replaying = false;
         return repl;
     }
 
-    getTemplate(id: string) {
+    getTemplate(id: number) {
         return this.templates[id];
     }
 
@@ -197,6 +216,23 @@ export class RepliqManager {
     }
 
 
+    // Yield Periodic Mode
+    // Propagates changes periodically, when yield is called.
+    yieldEvery(ms: number) {
+        if (this.yieldTimer)
+            this.stopYielding();
+        this.yieldTimer = setInterval(() => this.yield(), ms);
+    }
+
+    stopYielding() {
+        if (this.yieldTimer) {
+            clearInterval(this.yieldTimer);
+        }
+    }
+
+    yield() { throw Error("should be implemented by client/server"); }
+
+
 }
 
 
@@ -212,6 +248,7 @@ function computeHashString(str: string): number {
 }
 
 function computeHash(obj: Object): number {
-    let str = Object.keys(obj).reduce((acc, key) => Object.hasOwnProperty(key) ? (acc + key + obj[key].toString()) : "", "");
+    //return obj.constructor.name;
+    let str = Object.keys(obj).reduce((acc, key) => (obj.hasOwnProperty(key) ? (acc + key + obj[key].toString()) : ""), "");
     return computeHashString(str);
 }

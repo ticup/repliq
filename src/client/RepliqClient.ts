@@ -24,11 +24,11 @@ export class RepliqClient extends RepliqManager {
 
     incoming: Round[];
 
-    constructor(host: string, schema?: RepliqTemplateMap) {
-        this.channel = io(host, {forceNew: true});
+    constructor(schema?: RepliqTemplateMap, yieldEvery?: number) {
+        this.channel = io(null, {forceNew: true});
         this.incoming = [];
-        this.setupYieldPush()
-        super(schema);
+        this.setupYieldPush();
+        super(schema, yieldEvery);
     }
 
     setupYieldPush() {
@@ -54,7 +54,7 @@ export class RepliqClient extends RepliqManager {
         return this.onConnectP;
     }
 
-    send(selector: string, ...args: Object[]) {
+    send(selector: string, ...args: Object[]): Promise<any> {
         return new Promise((resolve, reject) => {
             debug("sending rpc " + selector + "(" + args + ")");
             let rpc = <com.RpcRequest> {selector, args: args.map(com.toJSON)};
