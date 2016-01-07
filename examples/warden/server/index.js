@@ -2,9 +2,10 @@ var Schema_1 = require("../shared/Schema");
 var express = require("express");
 var scripts = require("./script");
 var RepliqServer_1 = require("../../../src/server/RepliqServer");
+var port = process.env.PORT || 3000;
 var app = express();
 app.use(express.static(__dirname + '/../client/public'));
-var hserv = app.listen(8080);
+var hserv = app.listen(port);
 var server = new RepliqServer_1.RepliqServer(hserv, { Status: Schema_1.Status });
 var _status = server.create(Schema_1.Status);
 _status.setVal("offline");
@@ -23,5 +24,5 @@ scripts.login().then(function () {
 server.export({
     status: function () { return _status; }
 });
-console.log("Listening on 3000");
+console.log("Listening on " + port);
 //# sourceMappingURL=index.js.map

@@ -8,9 +8,10 @@ import * as express from "express";
 import * as scripts from "./script";
 import {RepliqServer} from "../../../src/server/RepliqServer";
 
+let port = process.env.PORT || 3000;
 let app = express();
 app.use(express.static(__dirname + '/../client/public'));
-let hserv = app.listen(80);
+let hserv = app.listen(port);
 
 let server = new RepliqServer(hserv, {Status});
 
@@ -43,4 +44,4 @@ server.export({
     status: ()=> _status
 });
 
-console.log("Listening on 3000");
+console.log("Listening on " + port);
