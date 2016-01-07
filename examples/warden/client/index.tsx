@@ -8,7 +8,7 @@ import {Status} from '../shared/Schema';
 
 import {RepliqClient, Repliq} from "../../../src/client/index";
 
-let client = new RepliqClient("localhost:3000", {Status: Status});
+let client = new RepliqClient(null, {Status: Status});
 setInterval(() => client.yield(), 1000);
 
 class MainComponent extends React.Component<{}, {}> {

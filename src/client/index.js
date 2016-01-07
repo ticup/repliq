@@ -1,4 +1,3 @@
-/// <reference path="./RepliqClient" />
 var RepliqClient_1 = require("./RepliqClient");
 exports.RepliqClient = RepliqClient_1.RepliqClient;
 var Repliq_1 = require("../shared/Repliq");

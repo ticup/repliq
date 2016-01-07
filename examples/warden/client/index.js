@@ -1,6 +1,3 @@
-///<reference path="../../../typings/tsd.d.ts" />
-///<reference path="../shared/Schema.ts" />
-///<reference path="../../../src/client/references.d.ts" />
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -10,7 +7,7 @@ var React = require('react');
 var ReactDOM = require('react-dom');
 var Schema_1 = require('../shared/Schema');
 var index_1 = require("../../../src/client/index");
-var client = new index_1.RepliqClient("localhost:3000", { Status: Schema_1.Status });
+var client = new index_1.RepliqClient(null, { Status: Schema_1.Status });
 setInterval(function () { return client.yield(); }, 1000);
 var MainComponent = (function (_super) {
     __extends(MainComponent, _super);
