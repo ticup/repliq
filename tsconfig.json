@@ -11,6 +11,8 @@
   },
   "exclude": [
     "node_modules",
-    "typings"
+    "typings",
+    "examples/*/typings",
+    "examples/*/node_modules"
   ]
 }

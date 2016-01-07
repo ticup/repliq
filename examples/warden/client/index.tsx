@@ -9,6 +9,7 @@ import {Status} from '../shared/Schema';
 import {RepliqClient, Repliq} from "../../../src/client/index";
 
 let client = new RepliqClient("localhost:3000", {Status: Status});
+setInterval(() => client.yield(), 1000);
 
 class MainComponent extends React.Component<{}, {}> {
     render() {
@@ -62,15 +63,21 @@ class StopTimeComponent extends React.Component<{}, {}>{
     }
 }
 
-class LightComponent extends React.Component<{}, {status: Status}>{
-    getInitialState() {
-        return {status: Status.stub()};
-    }
+interface LightComponentState {
+    status: Status
+}
+
+class LightComponent extends React.Component<{}, LightComponentState>{
+
+    state : LightComponentState = {status: Status.stub()};
 
     componentDidMount() {
-        client.send("status", (status) => {
+        console.log("sending to client");
+        client.send("status").then((status: Status) => {
+            console.log(status);
+            global.status = status;
             this.setState({status});
-            status.on("changed", () => {
+            status.on("change", () => {
                 this.setState({status});
             });
         });
@@ -78,10 +85,9 @@ class LightComponent extends React.Component<{}, {status: Status}>{
 
     switchLight() {
         let status = this.state.status;
-        let val = status.getVal();
-        if (val === "off") {
+        if (status.isOff()) {
             status.turnOn();
-        } else if (val === "on") {
+        } else if (status.isOn()) {
             status.turnOff();
         }
     }
@@ -91,7 +97,7 @@ class LightComponent extends React.Component<{}, {status: Status}>{
             <div className="row">
                 <div className="column">
                     <h4>Status</h4>
-                    <div onClick={this.switchLight} className="ui teal button">{this.state.status.getVal()}</div>
+                    <div onClick={(e) => this.switchLight()} className="ui teal button">{this.state.status.getVal()}</div>
                 </div>
             </div>
         );

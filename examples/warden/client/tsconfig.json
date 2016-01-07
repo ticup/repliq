@@ -5,9 +5,11 @@
     "removeComments": true,
     "preserveConstEnums": true,
     "sourceMap": true,
+    "experimentalDecorators": true,
+    "target": "ES5",
+    "jsx": "react"
   },
-  "exclude": [
-    "node_modules",
-    "typings"
+  "files": [
+    "index.tsx"
   ]
 }

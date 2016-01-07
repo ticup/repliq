@@ -110,8 +110,10 @@ export class RepliqClient extends RepliqManager {
             this.pending.forEach((round:Round) =>
                 this.play(round));
 
+            this.incoming = [];
+
             this.replaying = false;
-            affectedExt.forEach((rep: Repliq) => rep.emit(Repliq.CHANGE_EXTERNAL));
+            affectedExt.forEach((rep: Repliq) => { rep.emit(Repliq.CHANGE_EXTERNAL); rep.emit(Repliq.CHANGE)});
         }
 
     }

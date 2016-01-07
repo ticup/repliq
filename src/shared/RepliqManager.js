@@ -79,7 +79,7 @@ var RepliqManager = (function () {
             this.current.add(new Operation_1.Operation(repliq.getId(), selector, args));
             this.replaying = true;
         }
-        var res = fun.apply(data, args);
+        var res = fun.apply(repliq, args);
         if (startReplay) {
             this.replaying = false;
             this.notifyChanged();

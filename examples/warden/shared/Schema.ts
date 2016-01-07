@@ -3,6 +3,7 @@
 import {Repliq, sync, Register} from "../../../src/shared/index";
 
 export class Status extends Register {
+
     @sync
     turnOn() {
         this.setVal("on");
@@ -13,4 +14,11 @@ export class Status extends Register {
         this.setVal("off");
     }
 
+    isOn() {
+        return this.getVal() === "on";
+    }
+
+    isOff() {
+        return this.getVal() === "off";
+    }
 }

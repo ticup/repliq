@@ -24,7 +24,7 @@
   "scripts": {
     "compile": "tsc --module commonjs --outFile built/main.js src/index.ts",
     "compile-watch": "tsc --module commonjs --outFile built/main.js -w",
-    "examples-browserify": "node scripts/browserify-examples"
+    "compile-example": "node scripts/compile-example.js"
   },
   "keywords": [
     "Realtime",

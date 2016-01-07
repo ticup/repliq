@@ -92,8 +92,9 @@ var RepliqClient = (function (_super) {
             this.pending.forEach(function (round) {
                 return _this.play(round);
             });
+            this.incoming = [];
             this.replaying = false;
-            affectedExt.forEach(function (rep) { return rep.emit(Repliq_1.Repliq.CHANGE_EXTERNAL); });
+            affectedExt.forEach(function (rep) { rep.emit(Repliq_1.Repliq.CHANGE_EXTERNAL); rep.emit(Repliq_1.Repliq.CHANGE); });
         }
     };
     return RepliqClient;

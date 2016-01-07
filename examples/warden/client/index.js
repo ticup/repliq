@@ -11,6 +11,7 @@ var ReactDOM = require('react-dom');
 var Schema_1 = require('../shared/Schema');
 var index_1 = require("../../../src/client/index");
 var client = new index_1.RepliqClient("localhost:3000", { Status: Schema_1.Status });
+setInterval(function () { return client.yield(); }, 1000);
 var MainComponent = (function (_super) {
     __extends(MainComponent, _super);
     function MainComponent() {
@@ -45,31 +46,32 @@ var LightComponent = (function (_super) {
     __extends(LightComponent, _super);
     function LightComponent() {
         _super.apply(this, arguments);
+        this.state = { status: Schema_1.Status.stub() };
     }
-    LightComponent.prototype.getInitialState = function () {
-        return { status: Schema_1.Status.stub() };
-    };
     LightComponent.prototype.componentDidMount = function () {
         var _this = this;
-        client.send("status", function (status) {
+        console.log("sending to client");
+        client.send("status").then(function (status) {
+            console.log(status);
+            global.status = status;
             _this.setState({ status: status });
-            status.on("changed", function () {
+            status.on("change", function () {
                 _this.setState({ status: status });
             });
         });
     };
     LightComponent.prototype.switchLight = function () {
         var status = this.state.status;
-        var val = status.getVal();
-        if (val === "off") {
+        if (status.isOff()) {
             status.turnOn();
         }
-        else if (val === "on") {
+        else if (status.isOn()) {
             status.turnOff();
         }
     };
     LightComponent.prototype.render = function () {
-        return (React.createElement("div", {"className": "row"}, React.createElement("div", {"className": "column"}, React.createElement("h4", null, "Status"), React.createElement("div", {"onClick": this.switchLight, "className": "ui teal button"}, this.state.status.getVal()))));
+        var _this = this;
+        return (React.createElement("div", {"className": "row"}, React.createElement("div", {"className": "column"}, React.createElement("h4", null, "Status"), React.createElement("div", {"onClick": function (e) { return _this.switchLight(); }, "className": "ui teal button"}, this.state.status.getVal()))));
     };
     return LightComponent;
 })(React.Component);

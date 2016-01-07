@@ -24,6 +24,12 @@ var Status = (function (_super) {
     Status.prototype.turnOff = function () {
         this.setVal("off");
     };
+    Status.prototype.isOn = function () {
+        return this.getVal() === "on";
+    };
+    Status.prototype.isOff = function () {
+        return this.getVal() === "off";
+    };
     Object.defineProperty(Status.prototype, "turnOn",
         __decorate([
             index_1.sync

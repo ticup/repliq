@@ -106,7 +106,7 @@ export class RepliqManager {
         return this.repliqsData[id];
     }
 
-    getNextTemplateId(id: string) {
+    getNextTemplateId(id: number) {
         console.assert(typeof this.templateIds[id] !== "undefined");
         let val = this.templateIds[id];
         this.templateIds[id] += 1;
@@ -132,7 +132,7 @@ export class RepliqManager {
             this.current.add(new Operation(repliq.getId(), selector, args));
             this.replaying = true;
         }
-        let res = fun.apply(data, args);
+        let res = fun.apply(repliq, args);
         if (startReplay) {
             this.replaying = false;
             this.notifyChanged();

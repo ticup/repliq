@@ -13,9 +13,9 @@ let hserv = app.listen(3000);
 
 let server = new RepliqServer(hserv, {Grocery, GroceryList});
 
-let groceries = server.create(GroceryList);
-groceries.call("add", server.create(Grocery, { name: "peers",  count: 10 }));
-groceries.call("add", server.create(Grocery, { name: "apples", count: 10 }));
+let groceries = <GroceryList>server.create(GroceryList);
+groceries.add(<Grocery>server.create(Grocery, { name: "peers",  count: 10 }));
+groceries.add(<Grocery>server.create(Grocery, { name: "apples", count: 10 }));
 
 console.log(groceries.getCommit("items"));
 //groceries.get('items').forEach((item) => console.log(item));

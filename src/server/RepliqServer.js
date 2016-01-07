@@ -85,7 +85,7 @@ var RepliqServer = (function (_super) {
             var affectedExt = this.replay(this.incoming);
             this.incoming.forEach(function (r) { return _this.broadcastRound(r); });
             this.incoming = [];
-            affectedExt.forEach(function (rep) { return rep.emit(Repliq_1.Repliq.CHANGE_EXTERNAL); });
+            affectedExt.forEach(function (rep) { rep.emit(Repliq_1.Repliq.CHANGE_EXTERNAL); rep.emit(Repliq_1.Repliq.CHANGE); });
         }
         this.yielding = false;
     };

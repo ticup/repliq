@@ -15,15 +15,31 @@ var Repliq = (function (_super) {
         this.manager = manager;
         this.data = data;
         this.template = template;
-        this.id = id ? id : clientId + "@" + this.getTemplate().getId() + ":" + manager.getNextTemplateId(template.getId());
+        this.id = id ? id : clientId + "@" + this.getTemplate().getId() + ":" + (manager ? manager.getNextTemplateId(template.getId()) : "0");
     }
-    Repliq.stub = function () {
-        var data = new RepliqData_1.RepliqData({});
-        var repl = new RepliqStub(this, data);
-        return repl;
-    };
     Repliq.getId = function () {
         return this.id;
+    };
+    Repliq.stub = function (args) {
+        if (args === void 0) { args = {}; }
+        var data = new RepliqData_1.RepliqData(args);
+        var repl = new this(this, data, null, null);
+        var Stub = (function (_super) {
+            __extends(Stub, _super);
+            function Stub(template, data) {
+                _super.call(this, Stub, data, null, null);
+            }
+            Stub.prototype.call = function (op) {
+                var args = [];
+                for (var _i = 1; _i < arguments.length; _i++) {
+                    args[_i - 1] = arguments[_i];
+                }
+                return this.getMethod(op).call(args);
+            };
+            ;
+            return Stub;
+        })(this);
+        return new Stub(this, data);
     };
     Repliq.prototype.getMethod = function (op) {
         return this[op];
@@ -56,21 +72,6 @@ var Repliq = (function (_super) {
     return Repliq;
 })(events_1.EventEmitter);
 exports.Repliq = Repliq;
-var RepliqStub = (function (_super) {
-    __extends(RepliqStub, _super);
-    function RepliqStub(template, data) {
-        _super.call(this, template, data, null, null);
-    }
-    RepliqStub.prototype.call = function (op) {
-        var args = [];
-        for (var _i = 1; _i < arguments.length; _i++) {
-            args[_i - 1] = arguments[_i];
-        }
-        return this.getMethod(op).call(args);
-    };
-    return RepliqStub;
-})(Repliq);
-exports.RepliqStub = RepliqStub;
 function sync(target, key, prop) {
     return {
         value: function () {
