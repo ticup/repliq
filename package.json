@@ -14,6 +14,7 @@
     "node-uuid": "^1.4.7",
     "react": "^0.14.3",
     "react-dom": "^0.14.3",
+    "request": "^2.67.0",
     "should": "^7.1.1",
     "socket.io": "^1.3.7",
     "socket.io-client": "^1.3.7"
@@ -34,5 +35,10 @@
     "Eventual Consistency"
   ],
   "author": "Tim Coppieters",
-  "license": "MIT"
+  "license": "MIT",
+  "optionalDependencies": {
+    "node-schedule": "^0.6.0",
+    "request": "^2.67.0",
+    "spark": "^1.0.0"
+  }
 }
