@@ -14,34 +14,47 @@ var Time = (function (_super) {
     __extends(Time, _super);
     function Time() {
         _super.apply(this, arguments);
-        this.hour = 0;
-        this.minutes = 0;
     }
-    Time.prototype.setTime = function (hour, minutes) {
-        this.setHour(hour);
-        this.setMinutes(minutes);
-    };
-    Time.prototype.setHour = function (hour) {
+    Time.prototype._setHour = function (hour) {
         return this.set("hour", hour);
     };
-    Time.prototype.setMinutes = function (minutes) {
+    Time.prototype._setMinutes = function (minutes) {
         return this.set("minutes", minutes);
+    };
+    Time.prototype.setHour = function (hour) {
+        if (isNaN(hour) || hour < 0 || hour > 24) {
+            throw Error("incorrect hour " + hour);
+        }
+        return this._setHour(hour);
+    };
+    Time.prototype.setMinutes = function (minutes) {
+        if (isNaN(minutes) || minutes < 0 || minutes > 59) {
+            throw Error("incorrect minutes " + minutes);
+        }
+        return this._setMinutes(minutes);
     };
     Time.prototype.getHour = function () {
         return this.get("hour");
     };
+    Time.prototype.getHourPretty = function () {
+        return ('0' + this.getHour()).slice(-2);
+    };
     Time.prototype.getMinutes = function () {
         return this.get("minutes");
     };
+    Time.prototype.getMinutesPretty = function () {
+        return ('0' + this.getMinutes()).slice(-2);
+    };
+    Time.fields = {
+        hour: 0,
+        minutes: 0
+    };
     __decorate([
         Repliq_1.sync
-    ], Time.prototype, "setTime", null);
+    ], Time.prototype, "_setHour", null);
     __decorate([
         Repliq_1.sync
-    ], Time.prototype, "setHour", null);
-    __decorate([
-        Repliq_1.sync
-    ], Time.prototype, "setMinutes", null);
+    ], Time.prototype, "_setMinutes", null);
     return Time;
 })(Repliq_1.Repliq);
 exports.Time = Time;

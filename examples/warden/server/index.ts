@@ -24,6 +24,8 @@ let _status    = <Status>server.create(Status, {value: "offline"});
 let _startTime = <Time>  server.create(Time  , {hour: 8, minutes: 0});
 let _endTime   = <Time>  server.create(Time  , {hour: 20, minutes: 0});
 
+console.log(_startTime.getHour());
+console.log(_endTime.getHour());
 /*
     Hook up the Status Repliq
  */
@@ -49,8 +51,11 @@ scripts.login().then(() => {
  */
 let startSchedule;
 _startTime.on("change",() => {
-    if (startSchedule)
+    console.log("scheduling new start time " + _startTime.getHour() + ":" + _startTime.getMinutes());
+    if (startSchedule) {
+        console.log("canceling previous schedule");
         startSchedule.cancel();
+    }
 
     startSchedule = scripts.schedule(_startTime.getHour(), _startTime.getMinutes(), () => _status.turnOn());
 });

@@ -15,12 +15,16 @@ export class Repliq extends EventEmitter {
 
     static isRepliq : boolean = true;
 
+    static fields = {
+
+    };
+
     static getId() {
         return this.id;
     }
 
     static stub(args = {}) : any {
-        let data = new RepliqData();
+        let data = new RepliqData(args);
         let repl = new this(this, data, null, null);
 
         class Stub extends this {
@@ -52,7 +56,7 @@ export class Repliq extends EventEmitter {
     private id      : string;
 
 
-    constructor(template: typeof Repliq, data: RepliqData, manager: RepliqManager,  clientId: ClientId, id?: string) {
+    constructor(template: typeof Repliq, data: RepliqData, manager: RepliqManager, clientId: ClientId, id?: string) {
         super();
         this.clientId = clientId;
         this.manager = manager;
@@ -111,6 +115,8 @@ export class Repliq extends EventEmitter {
     committedKeys() {
         return this.data.getCommittedKeys();
     }
+
+    init() { }
 }
 
 

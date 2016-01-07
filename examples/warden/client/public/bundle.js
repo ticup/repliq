@@ -1,4 +1,5 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function (global){
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -44,7 +45,7 @@ var TimeComponent = (function (_super) {
     };
     TimeComponent.prototype.render = function () {
         var _this = this;
-        return (React.createElement("div", {"className": "row"}, React.createElement("div", {"className": "column"}, React.createElement("div", {"className": "segment"}, React.createElement("div", {"className": "ui big label"}, " ", this.props.title, " "), React.createElement("div", {"className": "ui " + (this.state.time.confirmed() ? "" : "red") + " big label"}, " ", this.state.time.getHour(), ":", this.state.time.getMinutes(), " "), React.createElement("div", {"className": "ui action left icon labeled input"}, React.createElement("i", {"className": "time icon"}), React.createElement("input", {"ref": "hour", "type": "text", "name": "Start Hour", "placeholder": "hour"}), React.createElement("input", {"ref": "minutes", "type": "text", "name": "Start Minute", "placeholder": "minutes"}), React.createElement("div", {"className": "ui teal button", "onClick": function (e) { return _this.submit(); }}, "Set!"))))));
+        return (React.createElement("div", {"className": "row"}, React.createElement("div", {"className": "column"}, React.createElement("div", {"className": "segment"}, React.createElement("div", {"className": "ui big label"}, " ", this.props.title, " "), React.createElement("div", {"className": "ui " + (this.state.time.confirmed() ? "" : "orange") + " big label"}, " ", this.state.time.getHourPretty(), ":", this.state.time.getMinutesPretty(), " "), React.createElement("div", {"className": "ui action left icon labeled input"}, React.createElement("i", {"className": "time icon"}), React.createElement("input", {"ref": "hour", "type": "text", "name": "Start Hour", "placeholder": "hour"}), React.createElement("input", {"ref": "minutes", "type": "text", "name": "Start Minute", "placeholder": "minutes"}), React.createElement("div", {"className": "ui teal button", "onClick": function (e) { return _this.submit(); }}, "Set!"))))));
     };
     return TimeComponent;
 })(React.Component);
@@ -75,12 +76,15 @@ var LightComponent = (function (_super) {
     };
     LightComponent.prototype.render = function () {
         var _this = this;
-        return (React.createElement("div", {"className": "row"}, React.createElement("div", {"className": "column"}, React.createElement("div", {"className": "ui big label"}, "Status"), React.createElement("div", {"onClick": function (e) { return _this.switchLight(); }, "className": "ui " + (this.state.status.confirmed() ? "teal" : "red") + " button"}, this.state.status.getVal())), React.createElement("div", {"className": "ui divider"})));
+        return (React.createElement("div", {"className": "row"}, React.createElement("div", {"className": "column"}, React.createElement("div", {"onClick": function (e) { return _this.switchLight(); }, "className": "ui " + (this.state.status.confirmed() ? (this.state.status.isOn() ? "green" : "red") : "orange") + " big button"}, "Status: ", this.state.status.getVal()))));
     };
     return LightComponent;
 })(React.Component);
+global["Time"] = Time_1.Time;
+global["Status"] = Schema_1.Status;
 ReactDOM.render(React.createElement(MainComponent, null), document.getElementById('main'));
 
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"../../../src/client/index":215,"../../../src/shared/protocols/Time":224,"../shared/Schema":2,"react":165,"react-dom":9}],2:[function(require,module,exports){
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
@@ -98,7 +102,6 @@ var Status = (function (_super) {
     __extends(Status, _super);
     function Status() {
         _super.apply(this, arguments);
-        this.value = "offline";
     }
     Status.prototype.turnOn = function () {
         this.setVal("on");
@@ -111,6 +114,9 @@ var Status = (function (_super) {
     };
     Status.prototype.isOff = function () {
         return this.getVal() === "off";
+    };
+    Status.fields = {
+        value: "offline"
     };
     __decorate([
         index_1.sync
@@ -37097,7 +37103,7 @@ var Repliq = (function (_super) {
     };
     Repliq.stub = function (args) {
         if (args === void 0) { args = {}; }
-        var data = new RepliqData_1.RepliqData();
+        var data = new RepliqData_1.RepliqData(args);
         var repl = new this(this, data, null, null);
         var Stub = (function (_super) {
             __extends(Stub, _super);
@@ -37147,9 +37153,11 @@ var Repliq = (function (_super) {
     Repliq.prototype.committedKeys = function () {
         return this.data.getCommittedKeys();
     };
+    Repliq.prototype.init = function () { };
     Repliq.CHANGE_EXTERNAL = "change_external";
     Repliq.CHANGE = "change";
     Repliq.isRepliq = true;
+    Repliq.fields = {};
     return Repliq;
 })(events_1.EventEmitter);
 exports.Repliq = Repliq;
@@ -37187,9 +37195,14 @@ function validate(val) {
 
 },{"./RepliqData":219,"events":421,"immutable":7}],219:[function(require,module,exports){
 var RepliqData = (function () {
-    function RepliqData() {
+    function RepliqData(fields) {
+        var _this = this;
+        if (fields === void 0) { fields = {}; }
         this.committed = {};
         this.tentative = {};
+        Object.keys(fields).forEach(function (name) {
+            _this.committed[name] = fields[name];
+        });
     }
     RepliqData.prototype.get = function (key) {
         return this.getTentative(key);
@@ -37285,7 +37298,7 @@ var RepliqManager = (function () {
             throw new Error("cannot create a repliq that is not declared ");
         }
         this.replaying = true;
-        var data = new RepliqData_1.RepliqData();
+        var data = new RepliqData_1.RepliqData(template.fields);
         var repl = new template(template, data, this, this.id);
         this.repliqs[repl.getId()] = repl;
         this.repliqsData[repl.getId()] = data;
@@ -37298,7 +37311,7 @@ var RepliqManager = (function () {
     };
     RepliqManager.prototype.add = function (template, args, id) {
         this.replaying = true;
-        var data = new RepliqData_1.RepliqData();
+        var data = new RepliqData_1.RepliqData(template.fields);
         var repl = new template(template, data, this, this.id, id);
         this.repliqs[repl.getId()] = repl;
         this.repliqsData[repl.getId()] = data;
@@ -37521,34 +37534,47 @@ var Time = (function (_super) {
     __extends(Time, _super);
     function Time() {
         _super.apply(this, arguments);
-        this.hour = 0;
-        this.minutes = 0;
     }
-    Time.prototype.setTime = function (hour, minutes) {
-        this.setHour(hour);
-        this.setMinutes(minutes);
-    };
-    Time.prototype.setHour = function (hour) {
+    Time.prototype._setHour = function (hour) {
         return this.set("hour", hour);
     };
-    Time.prototype.setMinutes = function (minutes) {
+    Time.prototype._setMinutes = function (minutes) {
         return this.set("minutes", minutes);
+    };
+    Time.prototype.setHour = function (hour) {
+        if (isNaN(hour) || hour < 0 || hour > 24) {
+            throw Error("incorrect hour " + hour);
+        }
+        return this._setHour(hour);
+    };
+    Time.prototype.setMinutes = function (minutes) {
+        if (isNaN(minutes) || minutes < 0 || minutes > 59) {
+            throw Error("incorrect minutes " + minutes);
+        }
+        return this._setMinutes(minutes);
     };
     Time.prototype.getHour = function () {
         return this.get("hour");
     };
+    Time.prototype.getHourPretty = function () {
+        return ('0' + this.getHour()).slice(-2);
+    };
     Time.prototype.getMinutes = function () {
         return this.get("minutes");
     };
+    Time.prototype.getMinutesPretty = function () {
+        return ('0' + this.getMinutes()).slice(-2);
+    };
+    Time.fields = {
+        hour: 0,
+        minutes: 0
+    };
     __decorate([
         Repliq_1.sync
-    ], Time.prototype, "setTime", null);
+    ], Time.prototype, "_setHour", null);
     __decorate([
         Repliq_1.sync
-    ], Time.prototype, "setHour", null);
-    __decorate([
-        Repliq_1.sync
-    ], Time.prototype, "setMinutes", null);
+    ], Time.prototype, "_setMinutes", null);
     return Time;
 })(Repliq_1.Repliq);
 exports.Time = Time;

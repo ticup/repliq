@@ -1,7 +1,12 @@
 var RepliqData = (function () {
-    function RepliqData() {
+    function RepliqData(fields) {
+        var _this = this;
+        if (fields === void 0) { fields = {}; }
         this.committed = {};
         this.tentative = {};
+        Object.keys(fields).forEach(function (name) {
+            _this.committed[name] = fields[name];
+        });
     }
     RepliqData.prototype.get = function (key) {
         return this.getTentative(key);

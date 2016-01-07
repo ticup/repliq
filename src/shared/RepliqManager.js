@@ -47,7 +47,7 @@ var RepliqManager = (function () {
             throw new Error("cannot create a repliq that is not declared ");
         }
         this.replaying = true;
-        var data = new RepliqData_1.RepliqData();
+        var data = new RepliqData_1.RepliqData(template.fields);
         var repl = new template(template, data, this, this.id);
         this.repliqs[repl.getId()] = repl;
         this.repliqsData[repl.getId()] = data;
@@ -60,7 +60,7 @@ var RepliqManager = (function () {
     };
     RepliqManager.prototype.add = function (template, args, id) {
         this.replaying = true;
-        var data = new RepliqData_1.RepliqData();
+        var data = new RepliqData_1.RepliqData(template.fields);
         var repl = new template(template, data, this, this.id, id);
         this.repliqs[repl.getId()] = repl;
         this.repliqsData[repl.getId()] = data;

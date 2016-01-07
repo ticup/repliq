@@ -43,7 +43,7 @@ var TimeComponent = (function (_super) {
     };
     TimeComponent.prototype.render = function () {
         var _this = this;
-        return (React.createElement("div", {"className": "row"}, React.createElement("div", {"className": "column"}, React.createElement("div", {"className": "segment"}, React.createElement("div", {"className": "ui big label"}, " ", this.props.title, " "), React.createElement("div", {"className": "ui " + (this.state.time.confirmed() ? "" : "red") + " big label"}, " ", this.state.time.getHour(), ":", this.state.time.getMinutes(), " "), React.createElement("div", {"className": "ui action left icon labeled input"}, React.createElement("i", {"className": "time icon"}), React.createElement("input", {"ref": "hour", "type": "text", "name": "Start Hour", "placeholder": "hour"}), React.createElement("input", {"ref": "minutes", "type": "text", "name": "Start Minute", "placeholder": "minutes"}), React.createElement("div", {"className": "ui teal button", "onClick": function (e) { return _this.submit(); }}, "Set!"))))));
+        return (React.createElement("div", {"className": "row"}, React.createElement("div", {"className": "column"}, React.createElement("div", {"className": "segment"}, React.createElement("div", {"className": "ui big label"}, " ", this.props.title, " "), React.createElement("div", {"className": "ui " + (this.state.time.confirmed() ? "" : "orange") + " big label"}, " ", this.state.time.getHourPretty(), ":", this.state.time.getMinutesPretty(), " "), React.createElement("div", {"className": "ui action left icon labeled input"}, React.createElement("i", {"className": "time icon"}), React.createElement("input", {"ref": "hour", "type": "text", "name": "Start Hour", "placeholder": "hour"}), React.createElement("input", {"ref": "minutes", "type": "text", "name": "Start Minute", "placeholder": "minutes"}), React.createElement("div", {"className": "ui teal button", "onClick": function (e) { return _this.submit(); }}, "Set!"))))));
     };
     return TimeComponent;
 })(React.Component);
@@ -74,9 +74,11 @@ var LightComponent = (function (_super) {
     };
     LightComponent.prototype.render = function () {
         var _this = this;
-        return (React.createElement("div", {"className": "row"}, React.createElement("div", {"className": "column"}, React.createElement("div", {"className": "ui big label"}, "Status"), React.createElement("div", {"onClick": function (e) { return _this.switchLight(); }, "className": "ui " + (this.state.status.confirmed() ? "teal" : "red") + " button"}, this.state.status.getVal())), React.createElement("div", {"className": "ui divider"})));
+        return (React.createElement("div", {"className": "row"}, React.createElement("div", {"className": "column"}, React.createElement("div", {"onClick": function (e) { return _this.switchLight(); }, "className": "ui " + (this.state.status.confirmed() ? (this.state.status.isOn() ? "green" : "red") : "orange") + " big button"}, "Status: ", this.state.status.getVal()))));
     };
     return LightComponent;
 })(React.Component);
+global["Time"] = Time_1.Time;
+global["Status"] = Schema_1.Status;
 ReactDOM.render(React.createElement(MainComponent, null), document.getElementById('main'));
 //# sourceMappingURL=index.js.map

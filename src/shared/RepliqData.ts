@@ -7,9 +7,12 @@ export class RepliqData {
     private committed;
     private tentative;
 
-    constructor() {
+    constructor(fields = {}) {
         this.committed = {};
         this.tentative = {};
+        Object.keys(fields).forEach((name) => {
+            this.committed[name] = fields[name];
+        });
     }
 
 

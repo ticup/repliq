@@ -21,7 +21,7 @@ var Repliq = (function (_super) {
     };
     Repliq.stub = function (args) {
         if (args === void 0) { args = {}; }
-        var data = new RepliqData_1.RepliqData();
+        var data = new RepliqData_1.RepliqData(args);
         var repl = new this(this, data, null, null);
         var Stub = (function (_super) {
             __extends(Stub, _super);
@@ -71,9 +71,11 @@ var Repliq = (function (_super) {
     Repliq.prototype.committedKeys = function () {
         return this.data.getCommittedKeys();
     };
+    Repliq.prototype.init = function () { };
     Repliq.CHANGE_EXTERNAL = "change_external";
     Repliq.CHANGE = "change";
     Repliq.isRepliq = true;
+    Repliq.fields = {};
     return Repliq;
 })(events_1.EventEmitter);
 exports.Repliq = Repliq;

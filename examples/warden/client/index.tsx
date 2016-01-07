@@ -59,7 +59,7 @@ class TimeComponent extends React.Component<{getTime():Promise<Time>, title: Str
                 <div className="column">
                     <div className="segment">
                         <div className="ui big label"> {this.props.title} </div>
-                        <div className={"ui " + (this.state.time.confirmed() ? "" : "red") + " big label"}> {this.state.time.getHour()}:{this.state.time.getMinutes()} </div>
+                        <div className={"ui " + (this.state.time.confirmed() ? "" : "orange") + " big label"}> {this.state.time.getHourPretty()}:{this.state.time.getMinutesPretty()} </div>
                         <div className="ui action left icon labeled input">
                             <i className="time icon"></i>
                             <input ref="hour" type="text" name="Start Hour" placeholder="hour"></input>
@@ -106,17 +106,16 @@ class LightComponent extends React.Component<{}, LightComponentState>{
         return (
             <div className="row">
                 <div className="column">
-                    <div className="ui big label">Status</div>
-                    <div onClick={(e) => this.switchLight()} className={"ui " + (this.state.status.confirmed() ? "teal" : "red") + " button"}>{this.state.status.getVal()}</div>
+                    <div onClick={(e) => this.switchLight()} className={"ui " + (this.state.status.confirmed() ? (this.state.status.isOn() ? "green" : "red") : "orange") + " big button"}>Status: {this.state.status.getVal()}</div>
                 </div>
-                <div className="ui divider" />
             </div>
         );
     }
 }
 
 
-
+global["Time"] = Time;
+global["Status"] = Status;
 
 ReactDOM.render(
     <MainComponent />,

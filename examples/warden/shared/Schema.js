@@ -14,7 +14,6 @@ var Status = (function (_super) {
     __extends(Status, _super);
     function Status() {
         _super.apply(this, arguments);
-        this.value = "offline";
     }
     Status.prototype.turnOn = function () {
         this.setVal("on");
@@ -27,6 +26,9 @@ var Status = (function (_super) {
     };
     Status.prototype.isOff = function () {
         return this.getVal() === "off";
+    };
+    Status.fields = {
+        value: "offline"
     };
     __decorate([
         index_1.sync

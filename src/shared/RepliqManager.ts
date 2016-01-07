@@ -87,7 +87,7 @@ export class RepliqManager {
             throw new Error("cannot create a repliq that is not declared ");
         }
         this.replaying = true;
-        let data = new RepliqData();
+        let data = new RepliqData(template.fields);
         let repl = new template(template, data, this, this.id);
         this.repliqs[repl.getId()] = repl;
         this.repliqsData[repl.getId()] = data;
@@ -101,7 +101,7 @@ export class RepliqManager {
 
     add(template: typeof Repliq, args, id: string) {
         this.replaying = true;
-        let data = new RepliqData();
+        let data = new RepliqData(template.fields);
         let repl = new template(template, data, this, this.id, id);
         this.repliqs[repl.getId()] = repl;
         this.repliqsData[repl.getId()] = data;

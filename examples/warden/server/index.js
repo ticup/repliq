@@ -11,6 +11,8 @@ var server = new RepliqServer_1.RepliqServer(hserv, { Status: Schema_1.Status, T
 var _status = server.create(Schema_1.Status, { value: "offline" });
 var _startTime = server.create(Time_1.Time, { hour: 8, minutes: 0 });
 var _endTime = server.create(Time_1.Time, { hour: 20, minutes: 0 });
+console.log(_startTime.getHour());
+console.log(_endTime.getHour());
 _status.on("change", function () {
     scripts.setLight(_status.getVal()).then(function (val) {
         console.log("changed status to: " + val);
@@ -24,8 +26,11 @@ scripts.login().then(function () {
 });
 var startSchedule;
 _startTime.on("change", function () {
-    if (startSchedule)
+    console.log("scheduling new start time " + _startTime.getHour() + ":" + _startTime.getMinutes());
+    if (startSchedule) {
+        console.log("canceling previous schedule");
         startSchedule.cancel();
+    }
     startSchedule = scripts.schedule(_startTime.getHour(), _startTime.getMinutes(), function () { return _status.turnOn(); });
 });
 var endSchedule;
