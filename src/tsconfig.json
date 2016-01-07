@@ -7,12 +7,7 @@
     "sourceMap": true,
     "jsx": "react",
     "target": "ES5",
-    "experimentalDecorators": true
-  },
-  "exclude": [
-    "node_modules",
-    "typings",
-    "examples/*/typings",
-    "examples/*/node_modules"
-  ]
+    "experimentalDecorators": true,
+    "outDir": "../build"
+  }
 }
