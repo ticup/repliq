@@ -314,14 +314,12 @@ describe("Repliq", function () {
                 server.export({ getRepliq: function () {
                         return s;
                     } });
-                server.yield();
                 client.send("getRepliq").then(function (r) {
                     client2.send("getRepliq").then(function (r2) {
                         var c = client.create(FooRepliq, {});
                         r.setFoo(c);
                         client.yield();
                         delay(function () {
-                            server.yield();
                             var c3 = server.getRepliq(c.getId());
                             should.exist(c3);
                             should.exist(s.get("foo"));
@@ -335,6 +333,56 @@ describe("Repliq", function () {
                                 stop(server, client, client2);
                                 done();
                             });
+                        });
+                    });
+                });
+            });
+        });
+        describe("creating a new repliq on server and introduce a reference for a client", function () {
+            it("should not create the object on another client", function (done) {
+                var FooRepliq = (function (_super) {
+                    __extends(FooRepliq, _super);
+                    function FooRepliq() {
+                        _super.apply(this, arguments);
+                        this.foo = "bar";
+                    }
+                    FooRepliq.prototype.setFoo = function (val) {
+                        this.set("foo", val);
+                        return val;
+                    };
+                    __decorate([
+                        index_1.sync
+                    ], FooRepliq.prototype, "setFoo", null);
+                    return FooRepliq;
+                })(index_1.Repliq);
+                var server = new index_2.RepliqServer(port, { FooRepliq: FooRepliq });
+                var client = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
+                var client2 = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
+                delay(function () {
+                    var s = server.create(FooRepliq, { foo: "foo" });
+                    server.export({
+                        getRepliq: function () {
+                            return s;
+                        }
+                    });
+                    client.send("getRepliq").then(function (r) {
+                        should.equal(r.getId(), s.getId());
+                        should.exist(r.get("foo"));
+                        should.equal(r.get("foo"), "foo");
+                        var s2 = server.create(FooRepliq, { foo: "foo" });
+                        s.setFoo(s2);
+                        server.yield();
+                        delay(function () {
+                            client.incoming.length.should.equal(1);
+                            client.incoming[0].operations.length.should.equal(2);
+                            client.yield();
+                            client.incoming.length.should.equal(0);
+                            should.equal(r.get("foo").getId(), s2.getId());
+                            client2.incoming.length.should.equal(1);
+                            client2.incoming[0].operations.length.should.equal(0);
+                            client2.yield();
+                            stop(server, client, client2);
+                            done();
                         });
                     });
                 });
