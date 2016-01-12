@@ -81,4 +81,25 @@ function fromJSON(_a, client) {
     throw new Error("unknown serialize value" + val);
 }
 exports.fromJSON = fromJSON;
+function getRepliqReferences(val) {
+    var type = typeof val;
+    if (type === "object") {
+        if (val instanceof immutable_1.List) {
+            return getRepliqReferences(val.toArray());
+        }
+        if (val instanceof Array) {
+            return val.reduce(function (acc, val) { return acc.concat(getRepliqReferences); }, []);
+        }
+        if (val instanceof Repliq_1.Repliq) {
+            var repl = val;
+            return [repl.getId()].concat(repl.committedKeys().reduce(function (acc, key) { return acc.concat(getRepliqReferences(repl.get(key))); }, []));
+        }
+        return Object.keys(val).reduce(function (acc, key) { return acc.concat(getRepliqReferences(val[key])); }, []);
+    }
+    if (type === "function" && val.isRepliq) {
+        return Object.keys(val.fields).reduce(function (acc, name) { return acc.concat(getRepliqReferences(val.fields[name])); }, []);
+    }
+    return [];
+}
+exports.getRepliqReferences = getRepliqReferences;
 //# sourceMappingURL=Communication.js.map

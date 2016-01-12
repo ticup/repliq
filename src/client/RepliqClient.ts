@@ -22,17 +22,24 @@ export class RepliqClient extends RepliqManager {
 
     channel : SocketIOClient.Socket;
 
+    serverNr : number = 0;
+
     incoming: Round[];
 
-    constructor(schema?: RepliqTemplateMap, yieldEvery?: number) {
-        this.channel = io(null, {forceNew: true});
+    constructor(host: string, schema?: RepliqTemplateMap, yieldEvery?: number) {
+        super(schema, yieldEvery);
+        this.channel = io(host, {forceNew: true});
         this.incoming = [];
         this.setupYieldPush();
-        super(schema, yieldEvery);
+        this.handshake();
     }
 
     setupYieldPush() {
         this.channel.on("YieldPush", (round: RoundJSON) => this.handleYieldPull(round));
+    }
+
+    handshake() {
+        this.channel.emit("handshake", {clientId: this.getId(), clientNr: this.getRoundNr(), serverNr: this.serverNr});
     }
 
     handleYieldPull(json: RoundJSON) {
@@ -45,8 +52,8 @@ export class RepliqClient extends RepliqManager {
     onConnect() {
         if (typeof this.onConnectP === "undefined") {
             this.onConnectP = new Promise<boolean>((resolve) => {
-                this.channel.on("connect", () => {
-                    debug("client connected");
+                this.channel.on("handshake", () => {
+                    debug("handshaked");
                     resolve(true);
                 });
             })
@@ -72,11 +79,11 @@ export class RepliqClient extends RepliqManager {
         this.channel.close();
     }
 
-    create(template: typeof Repliq, args) {
-        let r = super.create(template, args);
-        this.current.add(new Operation(undefined, "CreateRepliq", [template, r.getId()].concat(args)));
-        return r;
-    }
+    //create(template: typeof Repliq, args) {
+    //    let r = super.create(template, args);
+    //    this.current.add(new Operation(r.getId(), Repliq.CREATE_SELECTOR, [template].concat(args)));
+    //    return r;
+    //}
 
     public yield() {
         // client->master yield

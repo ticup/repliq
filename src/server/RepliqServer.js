@@ -10,20 +10,35 @@ var Repliq_1 = require("../shared/Repliq");
 var RepliqManager_1 = require("../shared/RepliqManager");
 var Listeners_1 = require("./Listeners");
 var Round_1 = require("../shared/Round");
+var Communication_1 = require("../shared/Communication");
 var debug = Debug("Repliq:com:server");
 var locald = Debug("Repliq:server");
 var RepliqServer = (function (_super) {
     __extends(RepliqServer, _super);
     function RepliqServer(app, schema, yieldEvery) {
         var _this = this;
+        _super.call(this, schema, yieldEvery);
+        this.clients = {};
+        this.requiresYield = true;
         this.channel = io(app);
         this.channel.on("connect", function (socket) {
             debug("client connected");
-            socket.on("rpc", function (rpc, reply) {
-                _this.handleRpc(rpc.selector, rpc.args, reply);
-            });
-            socket.on("YieldPull", function (json) {
-                _this.handleYieldPull(json);
+            socket.on("handshake", function (_a) {
+                var clientId = _a.clientId, clientRound = _a.clientRound, serverRound = _a.serverRound;
+                debug("handshaking");
+                _this.clients[clientId] = {
+                    clientNr: -1,
+                    serverNr: -1,
+                    repliqIds: {},
+                    socket: socket
+                };
+                socket.on("rpc", function (rpc, reply) {
+                    _this.handleRpc(clientId, rpc.selector, rpc.args, reply);
+                });
+                socket.on("YieldPull", function (json) {
+                    _this.handleYieldPull(json);
+                });
+                socket.emit("handshake");
             });
         });
         this.channel.on("disconnect", function (socket) {
@@ -33,12 +48,11 @@ var RepliqServer = (function (_super) {
             debug("client reconnected");
         });
         this.listeners = new Listeners_1.Listeners();
-        _super.call(this, schema, yieldEvery);
         if (!yieldEvery) {
             this.propagator = true;
         }
     }
-    RepliqServer.prototype.handleRpc = function (selector, sargs, reply) {
+    RepliqServer.prototype.handleRpc = function (clientId, selector, sargs, reply) {
         var _this = this;
         debug("received rpc " + selector + "(" + sargs + ")");
         if (!this.api) {
@@ -50,6 +64,8 @@ var RepliqServer = (function (_super) {
         }
         var args = sargs.map(function (a) { return com.fromJSON(a, _this); });
         var result = handler.apply(this.api, args);
+        var references = Communication_1.getRepliqReferences(result);
+        references.forEach(function (ref) { return _this.addReference(clientId, ref); });
         reply(null, com.toJSON(result));
     };
     RepliqServer.prototype.handleYieldPull = function (json) {
@@ -78,19 +94,54 @@ var RepliqServer = (function (_super) {
                 rounds.push(round);
             });
             var affectedExt = this.replay(this.incoming);
-            this.incoming.forEach(function (r) { return _this.broadcastRound(r); });
+            this.incoming.forEach(function (r) {
+                r.operations.forEach(function (op) {
+                    if (op.selector === Repliq_1.Repliq.CREATE_SELECTOR) {
+                        _this.addReference(r.getOriginId(), op.targetId);
+                    }
+                });
+                _this.broadcastRound(r);
+            });
             this.incoming = [];
             affectedExt.forEach(function (rep) { rep.emit(Repliq_1.Repliq.CHANGE_EXTERNAL); rep.emit(Repliq_1.Repliq.CHANGE); });
         }
         this.yielding = false;
+        if (this.requiresYield) {
+            this.requiresYield = false;
+            this.yield();
+        }
     };
     RepliqServer.prototype.notifyChanged = function () {
-        if (this.propagator && (!this.yielding))
-            this.yield();
+        if (this.propagator) {
+            if (!this.yielding) {
+                this.yield();
+            }
+            else {
+                this.requiresYield = true;
+            }
+        }
     };
     RepliqServer.prototype.broadcastRound = function (round) {
+        var _this = this;
         debug("broadcasting round " + round.getServerNr());
-        this.channel.emit("YieldPush", round.toJSON());
+        Object.keys(this.clients).forEach(function (id) {
+            var client = _this.clients[id];
+            if (round.getOriginId() == id) {
+                client.clientNr = round.getOriginNr();
+            }
+            client.serverNr = round.getServerNr();
+            round.operations.forEach(function (op) {
+                if (client.repliqIds[op.targetId]) {
+                    op.getNewRepliqIds().forEach(function (id) { return client.repliqIds[id] = true; });
+                }
+            });
+            var json = round.toJSON(Object.keys(client.repliqIds));
+            client.socket.emit("YieldPush", json);
+        });
+    };
+    RepliqServer.prototype.newRound = function () {
+        var nr = this.newRoundNr();
+        return new Round_1.Round(nr, this.getId(), nr);
     };
     RepliqServer.prototype.onConnect = function () {
         return new Promise(function (resolve) {
@@ -98,6 +149,9 @@ var RepliqServer = (function (_super) {
     };
     RepliqServer.prototype.stop = function () {
         this.channel.close();
+    };
+    RepliqServer.prototype.addReference = function (clientId, repliqId) {
+        this.clients[clientId].repliqIds[repliqId] = true;
     };
     RepliqServer.prototype.export = function (api) {
         if (this.api) {

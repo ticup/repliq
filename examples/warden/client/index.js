@@ -8,7 +8,7 @@ var ReactDOM = require('react-dom');
 var Schema_1 = require('../shared/Schema');
 var Time_1 = require('../../../src/shared/protocols/Time');
 var index_1 = require("../../../src/client/index");
-var client = new index_1.RepliqClient({ Status: Schema_1.Status, Time: Time_1.Time }, 1000);
+var client = new index_1.RepliqClient(null, { Status: Schema_1.Status, Time: Time_1.Time }, 1000);
 var MainComponent = (function (_super) {
     __extends(MainComponent, _super);
     function MainComponent() {
@@ -74,7 +74,11 @@ var LightComponent = (function (_super) {
     };
     LightComponent.prototype.render = function () {
         var _this = this;
-        return (React.createElement("div", {"className": "row"}, React.createElement("div", {"className": "column"}, React.createElement("div", {"onClick": function (e) { return _this.switchLight(); }, "className": "ui " + (this.state.status.confirmed() ? (this.state.status.isOn() ? "green" : "red") : "orange") + " big button"}, "Status: ", this.state.status.getVal()))));
+        return (React.createElement("div", {"className": "row"}, React.createElement("div", {"className": "column"}, React.createElement("div", {"onClick": function (e) { return _this.switchLight(); }, "className": "ui " + (this.state.status.confirmed() ?
+            (this.state.status.isOn() ?
+                "green" :
+                "red") :
+            "orange") + " big button"}, "Status: ", this.state.status.getVal()))));
     };
     return LightComponent;
 })(React.Component);

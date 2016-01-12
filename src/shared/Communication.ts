@@ -104,3 +104,32 @@ export function fromJSON({val, type}: ValueJSON, client: RepliqManager) {
     }
     throw new Error("unknown serialize value" + val);
 }
+
+export function getRepliqReferences(val) {
+    let type = typeof val;
+
+    if (type === "object") {
+
+        if (val instanceof List) {
+            return getRepliqReferences((<List<any>>val).toArray());
+        }
+        if (val instanceof Array) {
+            return val.reduce((acc, val) => acc.concat(getRepliqReferences), []);
+        }
+
+        if (val instanceof Repliq) {
+            let repl = <Repliq>val;
+            return [repl.getId()].concat(repl.committedKeys().reduce((acc, key) => acc.concat(getRepliqReferences(repl.get(key))), []));
+        }
+
+
+
+        return Object.keys(val).reduce((acc, key) => acc.concat(getRepliqReferences(val[key])), []);
+    }
+
+    if (type === "function" && (<any>val).isRepliq) {
+        return Object.keys(val.fields).reduce((acc, name) => acc.concat(getRepliqReferences(val.fields[name])), []);
+    }
+
+    return [];
+}

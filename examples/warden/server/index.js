@@ -3,16 +3,14 @@ var Schema_1 = require("../shared/Schema");
 var express = require("express");
 var scripts = require("./script");
 var RepliqServer_1 = require("../../../src/server/RepliqServer");
-var port = process.env.PORT || 3000;
+var port = process.env.PORT || 8000;
 var app = express();
 app.use(express.static(__dirname + '/../client/public'));
 var hserv = app.listen(port);
 var server = new RepliqServer_1.RepliqServer(hserv, { Status: Schema_1.Status, Time: Time_1.Time });
-var _status = server.create(Schema_1.Status, { value: "offline" });
+var _status = server.create(Schema_1.Status);
 var _startTime = server.create(Time_1.Time, { hour: 8, minutes: 0 });
 var _endTime = server.create(Time_1.Time, { hour: 20, minutes: 0 });
-console.log(_startTime.getHour());
-console.log(_endTime.getHour());
 _status.on("change", function () {
     scripts.setLight(_status.getVal()).then(function (val) {
         console.log("changed status to: " + val);

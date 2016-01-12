@@ -12,6 +12,7 @@ export class Repliq extends EventEmitter {
 
     public static CHANGE_EXTERNAL = "change_external";
     public static CHANGE = "change";
+    public static CREATE_SELECTOR = "createRepliq";
 
     static isRepliq : boolean = true;
 
@@ -117,6 +118,10 @@ export class Repliq extends EventEmitter {
     }
 
     init() { }
+
+    toString() {
+        return "{" + this.clientId.slice(-5) + "@" + this.getId().slice(-5) + "}";
+    }
 }
 
 

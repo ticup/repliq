@@ -10,19 +10,23 @@ var com = require("../shared/Communication");
 var RepliqManager_1 = require("../shared/RepliqManager");
 var Repliq_1 = require("../shared/Repliq");
 var Round_1 = require("../shared/Round");
-var Operation_1 = require("../shared/Operation");
 var debug = Debug("Repliq:com:client");
 var RepliqClient = (function (_super) {
     __extends(RepliqClient, _super);
-    function RepliqClient(schema, yieldEvery) {
-        this.channel = io(null, { forceNew: true });
+    function RepliqClient(host, schema, yieldEvery) {
+        _super.call(this, schema, yieldEvery);
+        this.serverNr = 0;
+        this.channel = io(host, { forceNew: true });
         this.incoming = [];
         this.setupYieldPush();
-        _super.call(this, schema, yieldEvery);
+        this.handshake();
     }
     RepliqClient.prototype.setupYieldPush = function () {
         var _this = this;
         this.channel.on("YieldPush", function (round) { return _this.handleYieldPull(round); });
+    };
+    RepliqClient.prototype.handshake = function () {
+        this.channel.emit("handshake", { clientId: this.getId(), clientNr: this.getRoundNr(), serverNr: this.serverNr });
     };
     RepliqClient.prototype.handleYieldPull = function (json) {
         debug("YieldPull: received round");
@@ -33,8 +37,8 @@ var RepliqClient = (function (_super) {
         var _this = this;
         if (typeof this.onConnectP === "undefined") {
             this.onConnectP = new Promise(function (resolve) {
-                _this.channel.on("connect", function () {
-                    debug("client connected");
+                _this.channel.on("handshake", function () {
+                    debug("handshaked");
                     resolve(true);
                 });
             });
@@ -61,11 +65,6 @@ var RepliqClient = (function (_super) {
     };
     RepliqClient.prototype.stop = function () {
         this.channel.close();
-    };
-    RepliqClient.prototype.create = function (template, args) {
-        var r = _super.prototype.create.call(this, template, args);
-        this.current.add(new Operation_1.Operation(undefined, "CreateRepliq", [template, r.getId()].concat(args)));
-        return r;
     };
     RepliqClient.prototype.yield = function () {
         var _this = this;

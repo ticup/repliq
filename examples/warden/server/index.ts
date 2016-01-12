@@ -10,22 +10,25 @@ import * as express from "express";
 import * as scripts from "./script";
 import {RepliqServer} from "../../../src/server/RepliqServer";
 
-let port = process.env.PORT || 3000;
+let port = process.env.PORT || 8000;
 let app = express();
 app.use(express.static(__dirname + '/../client/public'));
 let hserv = app.listen(port);
+
+
+
+
+
 
 let server = new RepliqServer(hserv, {Status, Time});
 
 /*
     Create the repliq instances
  */
-let _status    = <Status>server.create(Status, {value: "offline"});
+let _status    = <Status>server.create(Status);
 let _startTime = <Time>  server.create(Time  , {hour: 8, minutes: 0});
 let _endTime   = <Time>  server.create(Time  , {hour: 20, minutes: 0});
 
-console.log(_startTime.getHour());
-console.log(_endTime.getHour());
 /*
     Hook up the Status Repliq
  */

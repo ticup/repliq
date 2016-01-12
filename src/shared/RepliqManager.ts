@@ -8,6 +8,8 @@ import * as Debug from "debug";
 import * as guid from "node-uuid";
 import {RepliqData} from "./RepliqData";
 import {ClientId} from "./Types";
+import {toJSON} from "./Communication";
+import * as util from "util";
 
 let debug = Debug("Repliq:local");
 
@@ -86,30 +88,38 @@ export class RepliqManager {
         if (typeof this.getTemplate(template.getId()) == "undefined") {
             throw new Error("cannot create a repliq that is not declared ");
         }
+
+        // we have to put on replaying to not record what's in the constructor.
+        let wasReplaying = this.replaying;
         this.replaying = true;
         let data = new RepliqData(template.fields);
         let repl = new template(template, data, this, this.id);
+        this.replaying = wasReplaying;
         this.repliqs[repl.getId()] = repl;
         this.repliqsData[repl.getId()] = data;
         Object.keys(args).forEach((key) => {
             repl.set(key, args[key]);
         });
         data.commitValues();
-        this.replaying = false;
+        this.current.add(new Operation(repl.getId(), Repliq.CREATE_SELECTOR, (<Array<any>>[template]).concat(args)));
         return repl;
     }
 
     add(template: typeof Repliq, args, id: string) {
+        if (typeof this.getRepliq(id) !== "undefined") {
+            return this.getRepliq(id);
+        }
+        let wasReplaying = this.replaying;
         this.replaying = true;
         let data = new RepliqData(template.fields);
         let repl = new template(template, data, this, this.id, id);
+        this.replaying = wasReplaying;
         this.repliqs[repl.getId()] = repl;
         this.repliqsData[repl.getId()] = data;
         Object.keys(args).forEach((key) => {
             repl.set(key, args[key]);
         });
         data.commitValues();
-        this.replaying = false;
         return repl;
     }
 
@@ -125,6 +135,10 @@ export class RepliqManager {
         return this.repliqsData[id];
     }
 
+    getRoundNr() {
+        return this.roundNr;
+    }
+
     getNextTemplateId(id: number) {
         console.assert(typeof this.templateIds[id] !== "undefined");
         let val = this.templateIds[id];
@@ -134,7 +148,7 @@ export class RepliqManager {
 
 
     call(repliq: Repliq, data: RepliqData, selector: string, fun: Function, args) {
-        debug("calling " + selector + "(" + args + ")");
+        debug("calling " + selector + "(" + args.map((arg) => arg.toString()).join(", ") + ")");
         let startReplay = false;
         //var fun = repliq.getMethod(selector);
         //if (!fun) {
@@ -161,12 +175,11 @@ export class RepliqManager {
 
     }
 
-    execute(selector: string, args) {
-        if (selector === "CreateRepliq") {
+    execute(selector: string, id: string, args) {
+        if (selector === Repliq.CREATE_SELECTOR) {
             var template = args[0];
-            var id = args[1];
-            debug("creating repliq with id " + id + "(" + args.slice(2) + " )");
-            this.add(template, args[2], id);
+            debug("creating repliq with id " + id + "(" + args.slice(1) + " )");
+            this.add(template, args[1], id);
         }
         else {
             return new Error(selector + " does not exist");
@@ -187,12 +200,12 @@ export class RepliqManager {
     }
 
     protected play(round: Round): Repliq[] {
-        //debug("playing round " + round.getOriginNr() + " (" + round.operations.length + ")");
+        debug("playing round o:" + round.getOriginNr() + " s: " + round.getServerNr());
         let affected = [];
         round.operations.forEach((op: Operation) => {
             debug(op.targetId + " . " + op.selector);
-            if (op.targetId === undefined) {
-                this.execute(op.selector, op.args)
+            if (op.selector === Repliq.CREATE_SELECTOR) {
+                this.execute(op.selector, op.targetId, op.args)
             } else {
                 let rep = this.getRepliq(op.targetId);
                 rep[op.selector].apply(rep, op.args);

@@ -3,7 +3,7 @@
 import {Repliq} from "./Repliq";
 import {toJSON, fromJSON} from "./Communication";
 import {RepliqManager} from "./RepliqManager";
-import {ValueJSON} from "./Communication";
+import {ValueJSON, getRepliqReferences} from "./Communication";
 
 export interface OperationJSON {
     selector: string;
@@ -26,8 +26,12 @@ export class Operation {
         return {
             targetId: this.targetId,
             selector: this.selector,
-            args: this.args.map(toJSON)
+            args: this.args.map((arg) => toJSON(arg))
         }
+    }
+
+    getNewRepliqIds() {
+        return getRepliqReferences(this.args);
     }
 
     public static fromJSON(json: OperationJSON, manager: RepliqManager): Operation {
@@ -35,5 +39,9 @@ export class Operation {
             json.targetId,
             json.selector,
             json.args.map((arg) => fromJSON(arg, manager)));
+    }
+
+    public toString() {
+        return "" + this.targetId.slice(-5) + "." + this.selector + "(" + this.args.map((arg) => arg.toString()).join(", ") + ")";
     }
 }

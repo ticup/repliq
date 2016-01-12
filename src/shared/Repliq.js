@@ -72,8 +72,12 @@ var Repliq = (function (_super) {
         return this.data.getCommittedKeys();
     };
     Repliq.prototype.init = function () { };
+    Repliq.prototype.toString = function () {
+        return "{" + this.clientId.slice(-5) + "@" + this.getId().slice(-5) + "}";
+    };
     Repliq.CHANGE_EXTERNAL = "change_external";
     Repliq.CHANGE = "change";
+    Repliq.CREATE_SELECTOR = "createRepliq";
     Repliq.isRepliq = true;
     Repliq.fields = {};
     return Repliq;

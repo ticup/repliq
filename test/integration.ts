@@ -69,7 +69,7 @@ describe("Repliq", () => {
 
         describe("#constructor(url: string)", () => {
             it("should start an io client and connect to given host", (done) => {
-                let s = ioServer(3000);
+                let s = ioServer(port);
                 var client = new Client(host);
                 s.on("connection", () => { s.close(); client.stop(); done(); });
             });
@@ -179,17 +179,14 @@ describe("Repliq", () => {
     describe("Repliq Serialization", () => {
         describe("sending it to the server", () => {
             it("should get it as a Repliq object with given props", (done) => {
-                class FooRepliq extends Repliq{
+                class FooRepliq extends Repliq {
                     public foo = "bar";
                     setFoo(val) {
                         this.set("foo", val);
                         return val;
-                    }};
-                let server = new Server(port);
-                let client = new Client(host);
-
-                server.declare(FooRepliq);
-                client.declare(FooRepliq);
+                    }}
+                let server = new Server(port, {FooRepliq});
+                let client = new Client(host, {FooRepliq});
 
                 server.export({ fun: function (x) {
                     should(x).be.an.instanceof(Repliq);
@@ -210,22 +207,24 @@ describe("Repliq", () => {
                     setFoo(val) {
                         this.set("foo", val);
                         return val;
-                    }};
+                    }}
                 let server = new Server(port);
                 let client = new Client(host);
 
                 server.declare(FooRepliq);
                 client.declare(FooRepliq);
 
-                server.export({ identity: function (x) {
-                    return x;
-                }});
-                let r = client.create(FooRepliq, { foo: "foo" });
-                client.send("identity", r).then((r1) => {
-                    should.equal(r, r1);
-                    server.stop();
-                    client.stop();
-                    done();
+                client.onConnect().then(() => {
+                    server.export({ identity: function (x) {
+                        return x;
+                    }});
+                    let r = client.create(FooRepliq, { foo: "foo" });
+                    client.send("identity", r).then((r1) => {
+                        should.equal(r, r1);
+                        server.stop();
+                        client.stop();
+                        done();
+                    });
                 });
             });
         });
@@ -239,25 +238,28 @@ describe("Repliq", () => {
                     setFoo(val) {
                         this.set("foo", val);
                         return val;
-                    }};
-                let server = new Server(port);
-                let client = new Client(host);
+                    }}
+                let server = new Server(port,{FooRepliq});
+                let client = new Client(host,{FooRepliq});
 
-                server.declare(FooRepliq);
-                client.declare(FooRepliq);
 
                 server.export({ identity: function (x) {
                     return x;
                 }});
-                let r = client.create(FooRepliq, { foo: "foo" });
-                client.yield();
-                setTimeout(() => {
-                    server.yield();
-                    let r2 = server.getRepliq(r.getId());
-                    should.exist(r2);
-                    should.equal(r2.get("foo"), "foo");
-                    stop(client, server); done();
-                }, YIELD_DELAY);
+
+                client.onConnect().then(() => {
+
+                    let r = client.create(FooRepliq, {foo: "foo"});
+                    client.yield();
+                    setTimeout(() => {
+                        server.yield();
+                        let r2 = server.getRepliq(r.getId());
+                        should.exist(r2);
+                        should.equal(r2.get("foo"), "foo");
+                        stop(client, server);
+                        done();
+                    }, YIELD_DELAY);
+                });
             });
         });
 
@@ -300,14 +302,10 @@ describe("Repliq", () => {
                     setFoo(val) {
                         this.set("foo", val);
                         return val;
-                    }};
-                let server = new Server(port);
-                let client = new Client(host);
-                let client2 = new Client(host);
-
-                server.declare(FooRepliq);
-                client.declare(FooRepliq);
-                client2.declare(FooRepliq);
+                    }}
+                let server = new Server(port, {FooRepliq});
+                let client = new Client(host, {FooRepliq});
+                let client2 = new Client(host, {FooRepliq});
 
                 let s = server.create(FooRepliq, {  });
                 server.export({ getRepliq: function () {
@@ -326,9 +324,8 @@ describe("Repliq", () => {
                             server.yield();
                             let c3 = server.getRepliq(c.getId());
                             should.exist(c3);
-                            //should(s.get("foo")).be.an.instanceof(Repliq);
+                            should.exist(s.get("foo"));
                             should(s.get("foo").getId()).equal(c3.getId());
-                            stop(server, client); done();
 
                             delay(()=>{
                                 console.log("yielding client 2");

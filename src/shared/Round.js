@@ -3,7 +3,7 @@ var Round = (function () {
     function Round(originNr, originId, serverNr, operations) {
         if (serverNr === void 0) { serverNr = -1; }
         if (operations === void 0) { operations = []; }
-        this.serverNr = -1;
+        this.serverNr = serverNr;
         this.originNr = originNr;
         this.originId = originId;
         this.operations = operations;
@@ -26,16 +26,31 @@ var Round = (function () {
     Round.prototype.hasOperations = function () {
         return this.operations.length !== 0;
     };
-    Round.prototype.toJSON = function () {
-        return {
+    Round.prototype.getNewRepliqIds = function () {
+        return this.operations.map(function (op) { return op.getNewRepliqIds(); });
+    };
+    Round.prototype.getTargetRepliqIds = function () {
+        return this.operations.map(function (op) { return op.targetId; });
+    };
+    Round.prototype.toJSON = function (repliqIds) {
+        var json = {
             serverNr: this.serverNr,
             originNr: this.originNr,
             originId: this.originId,
-            operations: this.operations.map(function (op) { return op.toJSON(); })
+            operations: []
         };
+        this.operations.forEach(function (op) {
+            if (typeof repliqIds === "undefined" || repliqIds.indexOf(op.targetId) !== -1)
+                json.operations.push(op.toJSON());
+        });
+        return json;
     };
     Round.fromJSON = function (json, manager) {
         return new Round(json.originNr, json.originId, json.serverNr, json.operations.map(function (op) { return Operation_1.Operation.fromJSON(op, manager); }));
+    };
+    Round.prototype.toString = function () {
+        return "{Round#s:" + this.getServerNr() + "o:" + this.getOriginNr() + " | [" + this.operations.map(function (op) { return op.toString(); }).join(", ");
+        +"]}";
     };
     return Round;
 })();

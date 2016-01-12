@@ -5,7 +5,8 @@ import {Repliq, sync} from "../Repliq";
 export class Time extends Repliq {
    static fields = {
         hour: 0,
-        minutes: 0
+        minutes: 0,
+        seconds: 0
     };
 
     @sync
@@ -16,6 +17,11 @@ export class Time extends Repliq {
     @sync
     private _setMinutes(minutes: number) {
         return this.set("minutes", minutes);
+    }
+
+    @sync
+    private _setSeconds(seconds: number) {
+        return this.set("seconds", seconds);
     }
 
     public setHour(hour: number) {
@@ -30,6 +36,13 @@ export class Time extends Repliq {
             throw Error("incorrect minutes " + minutes);
         }
         return this._setMinutes(minutes);
+    }
+
+    public setSeconds(seconds: number) {
+        if (isNaN(seconds) || seconds < 0 || seconds > 59) {
+            throw Error("incorrect seconds " + seconds);
+        }
+        return this._setSeconds(seconds);
     }
 
     public getHour() {
@@ -47,4 +60,14 @@ export class Time extends Repliq {
     public getMinutesPretty() {
         return ('0' + this.getMinutes()).slice(-2);
     }
+
+    public getSeconds() {
+        return this.get("seconds");
+    }
+
+    public getSecondsPretty() {
+        return ('0' + this.getSeconds()).slice(-2);
+    }
+
+
 }

@@ -9,7 +9,7 @@ import {Time} from '../../../src/shared/protocols/Time';
 
 import {RepliqClient, Repliq} from "../../../src/client/index";
 
-let client = new RepliqClient({Status, Time}, 1000);
+let client = new RepliqClient(null, {Status, Time}, 1000);
 
 class MainComponent extends React.Component<{}, {}> {
     render() {
@@ -69,7 +69,6 @@ class TimeComponent extends React.Component<{getTime():Promise<Time>, title: Str
                     </div>
                 </div>
             </div>
-
         );
     }
 }
@@ -106,7 +105,14 @@ class LightComponent extends React.Component<{}, LightComponentState>{
         return (
             <div className="row">
                 <div className="column">
-                    <div onClick={(e) => this.switchLight()} className={"ui " + (this.state.status.confirmed() ? (this.state.status.isOn() ? "green" : "red") : "orange") + " big button"}>Status: {this.state.status.getVal()}</div>
+                    <div onClick={(e) => this.switchLight()}
+                         className={"ui " + (this.state.status.confirmed() ?
+                                                (this.state.status.isOn() ?
+                                                    "green" :
+                                                    "red") :
+                                                "orange") + " big button"}>
+                        Status: {this.state.status.getVal()}
+                    </div>
                 </div>
             </div>
         );
@@ -114,7 +120,7 @@ class LightComponent extends React.Component<{}, LightComponentState>{
 }
 
 
-global["Time"] = Time;
+global["Time"]   = Time;
 global["Status"] = Status;
 
 ReactDOM.render(

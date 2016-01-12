@@ -46,29 +46,35 @@ var RepliqManager = (function () {
         if (typeof this.getTemplate(template.getId()) == "undefined") {
             throw new Error("cannot create a repliq that is not declared ");
         }
+        var wasReplaying = this.replaying;
         this.replaying = true;
         var data = new RepliqData_1.RepliqData(template.fields);
         var repl = new template(template, data, this, this.id);
+        this.replaying = wasReplaying;
         this.repliqs[repl.getId()] = repl;
         this.repliqsData[repl.getId()] = data;
         Object.keys(args).forEach(function (key) {
             repl.set(key, args[key]);
         });
         data.commitValues();
-        this.replaying = false;
+        this.current.add(new Operation_1.Operation(repl.getId(), Repliq_1.Repliq.CREATE_SELECTOR, [template].concat(args)));
         return repl;
     };
     RepliqManager.prototype.add = function (template, args, id) {
+        if (typeof this.getRepliq(id) !== "undefined") {
+            return this.getRepliq(id);
+        }
+        var wasReplaying = this.replaying;
         this.replaying = true;
         var data = new RepliqData_1.RepliqData(template.fields);
         var repl = new template(template, data, this, this.id, id);
+        this.replaying = wasReplaying;
         this.repliqs[repl.getId()] = repl;
         this.repliqsData[repl.getId()] = data;
         Object.keys(args).forEach(function (key) {
             repl.set(key, args[key]);
         });
         data.commitValues();
-        this.replaying = false;
         return repl;
     };
     RepliqManager.prototype.getTemplate = function (id) {
@@ -80,6 +86,9 @@ var RepliqManager = (function () {
     RepliqManager.prototype.getRepliqData = function (id) {
         return this.repliqsData[id];
     };
+    RepliqManager.prototype.getRoundNr = function () {
+        return this.roundNr;
+    };
     RepliqManager.prototype.getNextTemplateId = function (id) {
         console.assert(typeof this.templateIds[id] !== "undefined");
         var val = this.templateIds[id];
@@ -87,7 +96,7 @@ var RepliqManager = (function () {
         return val;
     };
     RepliqManager.prototype.call = function (repliq, data, selector, fun, args) {
-        debug("calling " + selector + "(" + args + ")");
+        debug("calling " + selector + "(" + args.map(function (arg) { return arg.toString(); }).join(", ") + ")");
         var startReplay = false;
         if (!this.replaying) {
             startReplay = true;
@@ -103,12 +112,11 @@ var RepliqManager = (function () {
         }
         return res;
     };
-    RepliqManager.prototype.execute = function (selector, args) {
-        if (selector === "CreateRepliq") {
+    RepliqManager.prototype.execute = function (selector, id, args) {
+        if (selector === Repliq_1.Repliq.CREATE_SELECTOR) {
             var template = args[0];
-            var id = args[1];
-            debug("creating repliq with id " + id + "(" + args.slice(2) + " )");
-            this.add(template, args[2], id);
+            debug("creating repliq with id " + id + "(" + args.slice(1) + " )");
+            this.add(template, args[1], id);
         }
         else {
             return new Error(selector + " does not exist");
@@ -128,11 +136,12 @@ var RepliqManager = (function () {
     };
     RepliqManager.prototype.play = function (round) {
         var _this = this;
+        debug("playing round o:" + round.getOriginNr() + " s: " + round.getServerNr());
         var affected = [];
         round.operations.forEach(function (op) {
             debug(op.targetId + " . " + op.selector);
-            if (op.targetId === undefined) {
-                _this.execute(op.selector, op.args);
+            if (op.selector === Repliq_1.Repliq.CREATE_SELECTOR) {
+                _this.execute(op.selector, op.targetId, op.args);
             }
             else {
                 var rep = _this.getRepliq(op.targetId);
