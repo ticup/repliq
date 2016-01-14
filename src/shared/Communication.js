@@ -88,7 +88,7 @@ function getRepliqReferences(val) {
             return getRepliqReferences(val.toArray());
         }
         if (val instanceof Array) {
-            return val.reduce(function (acc, val) { return acc.concat(getRepliqReferences); }, []);
+            return val.reduce(function (acc, val) { return acc.concat(getRepliqReferences(val)); }, []);
         }
         if (val instanceof Repliq_1.Repliq) {
             var repl = val;

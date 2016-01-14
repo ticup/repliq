@@ -3,5 +3,5 @@
 /// <reference path="shared/Repliq" />
 
 export {RepliqClient} from "./client/index";
-export {RepliqServer} from "./server/index";
+export {RepliqServer, createServer} from "./server/index";
 export {sync} from "./shared/Repliq";

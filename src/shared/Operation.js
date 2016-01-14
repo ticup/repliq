@@ -1,3 +1,4 @@
+var Repliq_1 = require("./Repliq");
 var Communication_1 = require("./Communication");
 var Communication_2 = require("./Communication");
 var Operation = (function () {
@@ -14,6 +15,9 @@ var Operation = (function () {
         };
     };
     Operation.prototype.getNewRepliqIds = function () {
+        if (this.selector === Repliq_1.Repliq.CREATE_SELECTOR) {
+            return [this.targetId].concat(Communication_2.getRepliqReferences(this.args));
+        }
         return Communication_2.getRepliqReferences(this.args);
     };
     Operation.fromJSON = function (json, manager) {

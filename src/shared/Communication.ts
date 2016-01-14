@@ -114,7 +114,7 @@ export function getRepliqReferences(val) {
             return getRepliqReferences((<List<any>>val).toArray());
         }
         if (val instanceof Array) {
-            return val.reduce((acc, val) => acc.concat(getRepliqReferences), []);
+            return val.reduce((acc, val) => acc.concat(getRepliqReferences(val)), []);
         }
 
         if (val instanceof Repliq) {

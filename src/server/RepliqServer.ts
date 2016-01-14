@@ -18,6 +18,21 @@ import {getRepliqReferences} from "../shared/Communication";
 let debug = Debug("Repliq:com:server");
 let locald = Debug("Repliq:server");
 
+
+export interface ServerOptions {
+    port?: number;
+    app?: http.Server;
+    schema?: RepliqTemplateMap;
+    yieldEvery?: number;
+    manualPropagation?: boolean;
+}
+
+export function createServer(opts: ServerOptions) {
+    return new RepliqServer(opts.port ? opts.port : opts.app, opts.schema, opts.yieldEvery, opts.manualPropagation);
+}
+
+
+
 export interface Api {
     [selector: string] : Function;
 }
@@ -45,10 +60,10 @@ export class RepliqServer extends RepliqManager {
 
     private clients: Clients = {};
 
-    private requiresYield = true;
+    private requiresYield = false;
 
     // http server or port number, which will create its own http server.
-    constructor(app?: http.Server | number, schema?: RepliqTemplateMap, yieldEvery?: number) {
+    constructor(app?: http.Server | number, schema?: RepliqTemplateMap, yieldEvery?: number, manualPropagation?: boolean) {
         super(schema, yieldEvery);
 
         this.channel = io(app);
@@ -95,10 +110,7 @@ export class RepliqServer extends RepliqManager {
         this.listeners = new Listeners();
 
 
-
-        if (!yieldEvery) {
-            this.propagator = true;
-        }
+        this.propagator = !manualPropagation;
     }
 
     handleRpc(clientId: string, selector: string, sargs: com.ValueJSON[], reply: Function) {
@@ -130,23 +142,30 @@ export class RepliqServer extends RepliqManager {
         console.assert(!this.yielding);
         this.yielding = true;
         locald("yielding");
-        var rounds = [];
+        //var rounds = [];
 
         // master->client yield
         if (this.current.hasOperations()) {
             let cur = this.current;
             locald("- playing current round");
-            this.replay([cur]);
+            this.replay([cur]); // TODO: actually, should just commit here!!
             this.broadcastRound(cur);
             this.current = this.newRound();
         }
 
         // client->master yield
         if (this.incoming.length > 0) {
+            let cRound = this.current;
+            let cRoundNr = this.current.getServerNr();
             locald("- adding incoming round");
+
+            // Merge all incoming rounds in a server batch round
             this.incoming.forEach((round: Round) => {
-                round.setServerNr(this.newRoundNr());
-                rounds.push(round);
+                round.setServerNr(cRoundNr);
+                let client = this.clients[round.getOriginId()];
+                client.clientNr = round.getClientNr();
+                cRound.merge(round);
+                //rounds.push(round);
             });
             let affectedExt = this.replay(this.incoming);
             this.incoming.forEach((r) => {
@@ -155,9 +174,10 @@ export class RepliqServer extends RepliqManager {
                         this.addReference(r.getOriginId(), op.targetId);
                     }
                 });
-                this.broadcastRound(r)
             });
+            this.broadcastRound(cRound);
             this.incoming = [];
+            this.current = this.newRound();
 
             affectedExt.forEach((rep: Repliq) => { rep.emit(Repliq.CHANGE_EXTERNAL); rep.emit(Repliq.CHANGE) });
         }
@@ -167,6 +187,29 @@ export class RepliqServer extends RepliqManager {
             this.yield();
         }
 
+    }
+
+    broadcastRound(round: Round) {
+        let roundNr = round.getServerNr();
+        debug("broadcasting round " + roundNr);
+        Object.keys(this.clients).forEach((id) => {
+            let client = this.clients[id];
+
+            client.serverNr = roundNr;
+
+            round.operations.forEach((op) => {
+                if (client.repliqIds[op.targetId]) {
+                    op.getNewRepliqIds().forEach((rid) => this.addReference(id, rid));
+                }
+            });
+
+            let json = round.toJSON(Object.keys(client.repliqIds));
+            json.clientNr = client.clientNr;
+
+            if (round.containsOrigin(id) || json.operations.length > 0) {
+                client.socket.emit("YieldPush", json);
+            }
+        });
     }
 
     // Yield Propagator Mode
@@ -185,38 +228,13 @@ export class RepliqServer extends RepliqManager {
 
 
 
-    broadcastRound(round: Round) {
-        debug("broadcasting round " + round.getServerNr());
-        Object.keys(this.clients).forEach((id) => {
-            let client = this.clients[id];
 
-            if (round.getOriginId() == id) {
-                client.clientNr = round.getOriginNr();
-            }
-            client.serverNr = round.getServerNr();
-
-            round.operations.forEach((op) => {
-                if (client.repliqIds[op.targetId]) {
-                    op.getNewRepliqIds().forEach((id) => client.repliqIds[id] = true);
-                }
-            });
-
-            let json = round.toJSON(Object.keys(client.repliqIds));
-            client.socket.emit("YieldPush", json);
-        });
-    }
 
     protected newRound() {
         let nr = this.newRoundNr();
         return new Round(nr, this.getId(), nr);
     }
 
-
-    onConnect() {
-        return new Promise((resolve) => {
-
-        });
-    }
 
     stop() {
         this.channel.close();
@@ -233,3 +251,5 @@ export class RepliqServer extends RepliqManager {
         this.api = api;
     }
 }
+
+

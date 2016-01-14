@@ -3,16 +3,17 @@ var Round = (function () {
     function Round(originNr, originId, serverNr, operations) {
         if (serverNr === void 0) { serverNr = -1; }
         if (operations === void 0) { operations = []; }
+        this.origins = [];
         this.serverNr = serverNr;
-        this.originNr = originNr;
+        this.clientNr = originNr;
         this.originId = originId;
         this.operations = operations;
     }
     Round.prototype.getOriginId = function () {
         return this.originId;
     };
-    Round.prototype.getOriginNr = function () {
-        return this.originNr;
+    Round.prototype.getClientNr = function () {
+        return this.clientNr;
     };
     Round.prototype.setServerNr = function (nr) {
         this.serverNr = nr;
@@ -32,10 +33,17 @@ var Round = (function () {
     Round.prototype.getTargetRepliqIds = function () {
         return this.operations.map(function (op) { return op.targetId; });
     };
+    Round.prototype.containsOrigin = function (clientId) {
+        return this.origins.indexOf(clientId) !== -1;
+    };
+    Round.prototype.merge = function (round) {
+        this.operations = this.operations.concat(round.operations);
+        this.origins.push(round.getOriginId());
+    };
     Round.prototype.toJSON = function (repliqIds) {
         var json = {
             serverNr: this.serverNr,
-            originNr: this.originNr,
+            clientNr: this.clientNr,
             originId: this.originId,
             operations: []
         };
@@ -46,10 +54,10 @@ var Round = (function () {
         return json;
     };
     Round.fromJSON = function (json, manager) {
-        return new Round(json.originNr, json.originId, json.serverNr, json.operations.map(function (op) { return Operation_1.Operation.fromJSON(op, manager); }));
+        return new Round(json.clientNr, json.originId, json.serverNr, json.operations.map(function (op) { return Operation_1.Operation.fromJSON(op, manager); }));
     };
     Round.prototype.toString = function () {
-        return "{Round#s:" + this.getServerNr() + "o:" + this.getOriginNr() + " | [" + this.operations.map(function (op) { return op.toString(); }).join(", ");
+        return "{Round#s:" + this.getServerNr() + "o:" + this.getClientNr() + " | [" + this.operations.map(function (op) { return op.toString(); }).join(", ");
         +"]}";
     };
     return Round;

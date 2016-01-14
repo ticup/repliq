@@ -136,7 +136,7 @@ var RepliqManager = (function () {
     };
     RepliqManager.prototype.play = function (round) {
         var _this = this;
-        debug("playing round o:" + round.getOriginNr() + " s: " + round.getServerNr());
+        debug("playing round o:" + round.getClientNr() + " s: " + round.getServerNr());
         var affected = [];
         round.operations.forEach(function (op) {
             debug(op.targetId + " . " + op.selector);

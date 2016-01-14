@@ -38,7 +38,7 @@ describe("Unit Test", () => {
     //        });
     //    });
     //
-    //    describe("#new(template, originId, props)", () => {
+    //    describe("#new(template, clientId, props)", () => {
     //        let props = {foo:"bar", setFoo(val) { this.foo = val }};
     //        it("should return a Repliq object", () => {
     //            let t = new RepliqTemplate(props);

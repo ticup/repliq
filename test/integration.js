@@ -12,6 +12,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 };
 var index_1 = require("../src/shared/index");
 var index_2 = require("../src/index");
+var RepliqServer_1 = require("../src/server/RepliqServer");
 var http = require("http");
 var ioClient = require("socket.io-client");
 var ioServer = require("socket.io");
@@ -28,6 +29,20 @@ function delay(f) {
     setTimeout(f, YIELD_DELAY);
 }
 describe("Repliq", function () {
+    var FooRepliq = (function (_super) {
+        __extends(FooRepliq, _super);
+        function FooRepliq() {
+            _super.apply(this, arguments);
+            this.foo = "bar";
+        }
+        FooRepliq.prototype.setFoo = function (val) {
+            this.set("foo", val);
+        };
+        __decorate([
+            index_1.sync
+        ], FooRepliq.prototype, "setFoo", null);
+        return FooRepliq;
+    })(index_1.Repliq);
     var host = "http://localhost:3000";
     var port = 3000;
     describe("Server", function () {
@@ -355,7 +370,7 @@ describe("Repliq", function () {
                     ], FooRepliq.prototype, "setFoo", null);
                     return FooRepliq;
                 })(index_1.Repliq);
-                var server = new index_2.RepliqServer(port, { FooRepliq: FooRepliq });
+                var server = RepliqServer_1.createServer({ port: port, schema: { FooRepliq: FooRepliq }, manualPropagation: true });
                 var client = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
                 var client2 = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
                 delay(function () {
@@ -365,6 +380,7 @@ describe("Repliq", function () {
                             return s;
                         }
                     });
+                    server.yield();
                     client.send("getRepliq").then(function (r) {
                         should.equal(r.getId(), s.getId());
                         should.exist(r.get("foo"));
@@ -378,8 +394,7 @@ describe("Repliq", function () {
                             client.yield();
                             client.incoming.length.should.equal(0);
                             should.equal(r.get("foo").getId(), s2.getId());
-                            client2.incoming.length.should.equal(1);
-                            client2.incoming[0].operations.length.should.equal(0);
+                            client2.incoming.length.should.equal(0);
                             client2.yield();
                             stop(server, client, client2);
                             done();
@@ -405,7 +420,6 @@ describe("Repliq", function () {
                     ], FooRepliq.prototype, "setFoo", null);
                     return FooRepliq;
                 })(index_1.Repliq);
-                ;
                 var server = new index_2.RepliqServer(port);
                 var client = new index_2.RepliqClient(host);
                 server.declare(FooRepliq);
@@ -461,6 +475,204 @@ describe("Repliq", function () {
                     should.exist(r);
                     r.setFoo("bar");
                     client.yield();
+                });
+            });
+        });
+    });
+    describe("Rounds & Logs", function () {
+        describe("Server Modes", function () {
+            describe("server in \"manual propagation\" mode", function () {
+                it("should log the operations in the current round until yielded", function (done) {
+                    var server = RepliqServer_1.createServer({ port: port, schema: { FooRepliq: FooRepliq }, manualPropagation: true });
+                    server.export({
+                        identity: function (x) {
+                            return x;
+                        }
+                    });
+                    server.create(FooRepliq, { foo: "foo" });
+                    server.current.operations.length.should.equal(1);
+                    server.create(FooRepliq, { foo: "foo" });
+                    server.current.operations.length.should.equal(2);
+                    var r = server.create(FooRepliq, { foo: "foo" });
+                    r.setFoo("barr");
+                    server.current.operations.length.should.equal(4);
+                    server.yield();
+                    server.current.operations.length.should.equal(0);
+                    stop(server);
+                    done();
+                });
+            });
+            describe("server in \"automatic propagation\" mode", function () {
+                it("should automatically propagate a round when received from client", function (done) {
+                    var server = new index_2.RepliqServer(port, { FooRepliq: FooRepliq });
+                    var client = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
+                    var s = server.create(FooRepliq, {});
+                    server.export({
+                        getRepliq: function () {
+                            return s;
+                        }
+                    });
+                    client.onConnect().then(function () {
+                        client.send("getRepliq").then(function (c) {
+                            c.setFoo("fooor");
+                            should.equal(c.get("foo"), "fooor");
+                            should.equal(c.confirmed(), false);
+                            client.yield();
+                            delay(function () {
+                                s.get("foo").should.equal("fooor");
+                                client.yield();
+                                should.equal(c.get("foo"), "fooor");
+                                should.equal(c.confirmed(), true);
+                                stop(server, client);
+                                done();
+                            });
+                        });
+                    });
+                });
+            });
+        });
+        describe("Round numbering", function () {
+            describe("Simple Server Rounds", function () {
+                describe("yielding after an action happened", function () {
+                    it("should create successive numbers, starting from 0", function (done) {
+                        var server = new index_2.RepliqServer(port, { FooRepliq: FooRepliq });
+                        server.current.getServerNr().should.equal(0);
+                        server.create(FooRepliq, {});
+                        server.current.getServerNr().should.equal(0);
+                        server.yield();
+                        server.current.getServerNr().should.equal(1);
+                        server.create(FooRepliq, {});
+                        server.yield();
+                        server.current.getServerNr().should.equal(2);
+                        var s = server.create(FooRepliq, {});
+                        server.yield();
+                        server.current.getServerNr().should.equal(3);
+                        s.setFoo("foo");
+                        server.yield();
+                        server.current.getServerNr().should.equal(4);
+                        stop(server);
+                        done();
+                    });
+                });
+                describe("yielding without an action happened", function () {
+                    it("should not create a new round", function (done) {
+                        var server = new index_2.RepliqServer(port, { FooRepliq: FooRepliq });
+                        var round = server.current;
+                        server.current.getServerNr().should.equal(0);
+                        server.yield();
+                        server.current.getServerNr().should.equal(0);
+                        should.equal(server.current, round);
+                        server.yield();
+                        server.current.getServerNr().should.equal(0);
+                        server.create(FooRepliq, {});
+                        server.yield();
+                        var r = server.current;
+                        server.current.getServerNr().should.equal(1);
+                        server.yield();
+                        server.current.getServerNr().should.equal(1);
+                        should.equal(server.current, r);
+                        stop(server);
+                        done();
+                    });
+                });
+            });
+            describe("Simple Client Rounds", function () {
+                describe("yielding after an action happened", function () {
+                    it("should create successive numbers, starting from 0", function (done) {
+                        var client = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
+                        client.current.getClientNr().should.equal(0);
+                        client.create(FooRepliq, {});
+                        client.current.getClientNr().should.equal(0);
+                        client.yield();
+                        client.current.getClientNr().should.equal(1);
+                        client.create(FooRepliq, {});
+                        client.yield();
+                        client.current.getClientNr().should.equal(2);
+                        var s = client.create(FooRepliq, {});
+                        client.yield();
+                        client.current.getClientNr().should.equal(3);
+                        s.setFoo("foo");
+                        client.yield();
+                        client.current.getClientNr().should.equal(4);
+                        stop(client);
+                        done();
+                    });
+                });
+                describe("yielding without an action happened", function () {
+                    it("should not create a new round", function (done) {
+                        var client = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
+                        var round = client.current;
+                        client.current.getClientNr().should.equal(0);
+                        client.yield();
+                        client.current.getClientNr().should.equal(0);
+                        should.equal(client.current, round);
+                        client.yield();
+                        client.current.getClientNr().should.equal(0);
+                        client.create(FooRepliq, {});
+                        client.yield();
+                        var r = client.current;
+                        client.current.getClientNr().should.equal(1);
+                        client.yield();
+                        client.current.getClientNr().should.equal(1);
+                        should.equal(client.current, r);
+                        stop(client);
+                        done();
+                    });
+                });
+            });
+            describe("Client-Server Round", function () {
+                describe("Creating a round on the client and yielding", function () {
+                    it("should create a 0-0 round both server and client", function (done) {
+                        var client = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
+                        var server = new index_2.RepliqServer(port, { FooRepliq: FooRepliq });
+                        client.create(FooRepliq, {});
+                        client.yield();
+                        delay(function () {
+                            server.current.getServerNr().should.equal(1);
+                            stop(client, server);
+                            done();
+                        });
+                    });
+                });
+                describe.only("Sending rounds from different clients to the server", function () {
+                    it("should merge them into one", function (done) {
+                        var client1 = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
+                        var client2 = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
+                        var server = RepliqServer_1.createServer({ port: port, schema: { FooRepliq: FooRepliq }, manualPropagation: true });
+                        client1.create(FooRepliq, {});
+                        client1.yield();
+                        client1.create(FooRepliq, {});
+                        client1.yield();
+                        client2.create(FooRepliq, {});
+                        client2.yield();
+                        client2.create(FooRepliq, {});
+                        client2.yield();
+                        client2.create(FooRepliq, {});
+                        client2.yield();
+                        client1.pending.length.should.equal(2);
+                        client2.pending.length.should.equal(3);
+                        delay(function () {
+                            server.current.getServerNr().should.equal(0);
+                            server.incoming.length.should.equal(5);
+                            server.yield();
+                            server.incoming.length.should.equal(0);
+                            server.current.getServerNr().should.equal(1);
+                            delay(function () {
+                                client1.pending.length.should.equal(2);
+                                client2.pending.length.should.equal(3);
+                                client1.incoming.length.should.equal(1);
+                                client2.incoming.length.should.equal(1);
+                                client1.yield();
+                                client2.yield();
+                                client1.incoming.length.should.equal(0);
+                                client1.pending.length.should.equal(0);
+                                client2.incoming.length.should.equal(0);
+                                client2.pending.length.should.equal(0);
+                                stop(client1, server);
+                                done();
+                            });
+                        });
+                    });
                 });
             });
         });

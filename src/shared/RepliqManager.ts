@@ -32,11 +32,11 @@ export class RepliqManager {
 
     private roundNr : number;
 
-    protected current : Round;
-    protected pending : Round[];
-    protected confirmed : Round[];
+    public current : Round;
+    public pending : Round[];
+    public confirmed : Round[];
 
-    protected incoming : Round[];
+    public incoming : Round[];
 
     protected yielding : boolean;
     private yieldTimer : NodeJS.Timer;
@@ -200,7 +200,7 @@ export class RepliqManager {
     }
 
     protected play(round: Round): Repliq[] {
-        debug("playing round o:" + round.getOriginNr() + " s: " + round.getServerNr());
+        debug("playing round o:" + round.getClientNr() + " s: " + round.getServerNr());
         let affected = [];
         round.operations.forEach((op: Operation) => {
             debug(op.targetId + " . " + op.selector);

@@ -1,3 +1,3 @@
 /// <reference path="./RepliqServer" />
 
-export {RepliqServer} from "./RepliqServer";
+export {RepliqServer, createServer} from "./RepliqServer";

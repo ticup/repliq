@@ -15,9 +15,9 @@ var RepliqClient = (function (_super) {
     __extends(RepliqClient, _super);
     function RepliqClient(host, schema, yieldEvery) {
         _super.call(this, schema, yieldEvery);
-        this.serverNr = 0;
-        this.channel = io(host, { forceNew: true });
+        this.serverNr = -1;
         this.incoming = [];
+        this.channel = io(host, { forceNew: true });
         this.setupYieldPush();
         this.handshake();
     }
@@ -27,6 +27,12 @@ var RepliqClient = (function (_super) {
     };
     RepliqClient.prototype.handshake = function () {
         this.channel.emit("handshake", { clientId: this.getId(), clientNr: this.getRoundNr(), serverNr: this.serverNr });
+        var d = Promise.defer();
+        this.onConnectP = d.promise;
+        this.channel.on("handshake", function () {
+            debug("handshaked");
+            d.resolve();
+        });
     };
     RepliqClient.prototype.handleYieldPull = function (json) {
         debug("YieldPull: received round");
@@ -34,15 +40,6 @@ var RepliqClient = (function (_super) {
         this.incoming.push(round);
     };
     RepliqClient.prototype.onConnect = function () {
-        var _this = this;
-        if (typeof this.onConnectP === "undefined") {
-            this.onConnectP = new Promise(function (resolve) {
-                _this.channel.on("handshake", function () {
-                    debug("handshaked");
-                    resolve(true);
-                });
-            });
-        }
         return this.onConnectP;
     };
     RepliqClient.prototype.send = function (selector) {
@@ -51,15 +48,17 @@ var RepliqClient = (function (_super) {
         for (var _i = 1; _i < arguments.length; _i++) {
             args[_i - 1] = arguments[_i];
         }
-        return new Promise(function (resolve, reject) {
-            debug("sending rpc " + selector + "(" + args + ")");
-            var rpc = { selector: selector, args: args.map(com.toJSON) };
-            _this.channel.emit("rpc", rpc, function (error, result) {
-                var ser = result;
-                debug("received rpc result for " + selector + "(" + args + ") : " + result);
-                if (error)
-                    return reject(new Error(error));
-                resolve(com.fromJSON(ser, _this));
+        return this.onConnect().then(function () {
+            return new Promise(function (resolve, reject) {
+                debug("sending rpc " + selector + "(" + args + ")");
+                var rpc = { selector: selector, args: args.map(com.toJSON) };
+                _this.channel.emit("rpc", rpc, function (error, result) {
+                    var ser = result;
+                    debug("received rpc result for " + selector + "(" + args + ") : " + result);
+                    if (error)
+                        return reject(new Error(error));
+                    resolve(com.fromJSON(ser, _this));
+                });
             });
         });
     };
@@ -77,15 +76,23 @@ var RepliqClient = (function (_super) {
         }
         if (this.incoming.length > 0) {
             this.replaying = true;
+            var last = this.incoming[this.incoming.length - 1];
             this.forEachData(function (_, r) {
                 return r.setToCommit();
             });
             var affectedExt = this.replay(this.incoming);
-            this.incoming.forEach(function (round) {
-                if (round.getOriginId() == _this.getId()) {
-                    _this.pending = _this.pending.slice(1);
+            var confirmedNr = last.getClientNr();
+            var idx;
+            this.pending.forEach(function (r, i) {
+                if (r.getClientNr() <= confirmedNr) {
+                    idx = i;
                 }
             });
+            if (typeof idx !== "undefined") {
+                this.pending = this.pending.slice(idx + 1);
+            }
+            console.assert(this.serverNr < last.getServerNr() || this.serverNr == -1);
+            this.serverNr = last.getServerNr();
             this.pending.forEach(function (round) {
                 return _this.play(round);
             });

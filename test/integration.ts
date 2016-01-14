@@ -1,10 +1,13 @@
 /// <reference path="../typings/tsd.d.ts" />
 /// <reference path="../src/index" />
 ///<reference path="../src/shared/Repliq.ts"/>
+///<reference path="../src/server/RepliqServer.ts"/>
+
 "use strict";
 import {Repliq, List, sync} from "../src/shared/index";
 import {RepliqServer as Server,
         RepliqClient as Client}  from "../src/index";
+import {createServer} from "../src/server/RepliqServer";
 import * as http from "http";
 import * as ioClient  from "socket.io-client";
 import * as ioServer from "socket.io";
@@ -22,6 +25,13 @@ function delay(f) {
 }
 
 describe("Repliq", () => {
+
+    class FooRepliq extends Repliq {
+        public foo = "bar";
+        @sync
+        setFoo(val) {
+            this.set("foo", val);
+        }}
 
     let host = "http://localhost:3000";
     let port = 3000;
@@ -352,7 +362,7 @@ describe("Repliq", () => {
                         this.set("foo", val);
                         return val;
                     }}
-                let server = new Server(port, {FooRepliq});
+                let server = createServer({port, schema: {FooRepliq}, manualPropagation: true});
                 let client = new Client(host, {FooRepliq});
                 let client2 = new Client(host, {FooRepliq});
 
@@ -367,7 +377,7 @@ describe("Repliq", () => {
                         }
                     });
 
-                    //server.yield();
+                    server.yield();
                     client.send("getRepliq").then((r:FooRepliq) => {
                         //client.yield();
                         should.equal(r.getId(), s.getId());
@@ -386,8 +396,7 @@ describe("Repliq", () => {
                             client.incoming.length.should.equal(0);
                             should.equal(r.get("foo").getId(), s2.getId());
 
-                            client2.incoming.length.should.equal(1);
-                            client2.incoming[0].operations.length.should.equal(0);
+                            client2.incoming.length.should.equal(0);
                             client2.yield();
                             stop(server, client, client2);
                             done();
@@ -407,7 +416,7 @@ describe("Repliq", () => {
                     setFoo(val) {
                         this.set("foo", val);
                         return val;
-                    }};
+                    }}
                 let server = new Server(port);
                 let client = new Client(host);
 
@@ -471,6 +480,238 @@ describe("Repliq", () => {
                 });
             });
         });
+    });
 
+    describe("Rounds & Logs", () => {
+
+        describe("Server Modes", () => {
+            describe("server in \"manual propagation\" mode", () => {
+                it("should log the operations in the current round until yielded", (done) => {
+                    let server = createServer({port, schema: {FooRepliq}, manualPropagation: true});
+
+                    server.export({
+                        identity: function (x) {
+                            return x;
+                        }
+                    });
+
+                    server.create(FooRepliq, {foo: "foo"});
+                    server.current.operations.length.should.equal(1);
+                    server.create(FooRepliq, {foo: "foo"});
+                    server.current.operations.length.should.equal(2);
+                    let r = <FooRepliq>server.create(FooRepliq, {foo: "foo"});
+                    r.setFoo("barr");
+                    server.current.operations.length.should.equal(4);
+                    server.yield();
+                    server.current.operations.length.should.equal(0);
+                    stop(server);
+                    done();
+                });
+
+            });
+
+            describe("server in \"automatic propagation\" mode", () => {
+                it("should automatically propagate a round when received from client", (done) => {
+                    let server = new Server(port, {FooRepliq});
+                    let client = new Client(host, {FooRepliq});
+
+                    let s = <FooRepliq>server.create(FooRepliq, {});
+                    server.export({
+                        getRepliq: function () {
+                            return s;
+                        }
+                    });
+
+                    client.onConnect().then(() => {
+                        client.send("getRepliq").then((c:FooRepliq) => {
+                            c.setFoo("fooor");
+                            should.equal(c.get("foo"), "fooor");
+                            should.equal(c.confirmed(), false);
+                            client.yield();
+                            delay(() => {
+                                s.get("foo").should.equal("fooor");
+
+                                client.yield();
+                                should.equal(c.get("foo"), "fooor");
+                                should.equal(c.confirmed(), true);
+
+                                stop(server, client);
+                                done();
+                            });
+                        });
+                    });
+
+                });
+            });
+        });
+
+        describe("Round numbering", () => {
+            describe("Simple Server Rounds", () => {
+
+                describe("yielding after an action happened", () => {
+                    it("should create successive numbers, starting from 0", (done) => {
+                        let server = new Server(port, {FooRepliq});
+
+                        server.current.getServerNr().should.equal(0);
+                        <FooRepliq>server.create(FooRepliq, {});
+                        server.current.getServerNr().should.equal(0);
+                        server.yield();
+                        server.current.getServerNr().should.equal(1);
+                        <FooRepliq>server.create(FooRepliq, {});
+                        server.yield();
+                        server.current.getServerNr().should.equal(2);
+                        let s = <FooRepliq>server.create(FooRepliq, {});
+                        server.yield();
+                        server.current.getServerNr().should.equal(3);
+                        s.setFoo("foo");
+                        server.yield();
+                        server.current.getServerNr().should.equal(4);
+                        stop(server);
+                        done();
+                    });
+                });
+
+                describe("yielding without an action happened", () => {
+                    it("should not create a new round", (done) => {
+                        let server = new Server(port, {FooRepliq});
+
+                        let round = server.current;
+                        server.current.getServerNr().should.equal(0);
+                        server.yield();
+                        server.current.getServerNr().should.equal(0);
+                        should.equal(server.current, round);
+                        server.yield();
+                        server.current.getServerNr().should.equal(0);
+                        <FooRepliq>server.create(FooRepliq, {});
+                        server.yield();
+                        let r = server.current;
+                        server.current.getServerNr().should.equal(1);
+                        server.yield();
+                        server.current.getServerNr().should.equal(1);
+                        should.equal(server.current, r);
+                        stop(server); done();
+                    });
+                });
+            });
+
+            describe("Simple Client Rounds", () => {
+                describe("yielding after an action happened", () => {
+                    it("should create successive numbers, starting from 0", (done) => {
+                        let client = new Client(host, {FooRepliq});
+
+                        client.current.getClientNr().should.equal(0);
+                        <FooRepliq>client.create(FooRepliq, {});
+                        client.current.getClientNr().should.equal(0);
+                        client.yield();
+                        client.current.getClientNr().should.equal(1);
+                        <FooRepliq>client.create(FooRepliq, {});
+                        client.yield();
+                        client.current.getClientNr().should.equal(2);
+                        let s = <FooRepliq>client.create(FooRepliq, {});
+                        client.yield();
+                        client.current.getClientNr().should.equal(3);
+                        s.setFoo("foo");
+                        client.yield();
+                        client.current.getClientNr().should.equal(4);
+                        stop(client);
+                        done();
+                    });
+                });
+
+                describe("yielding without an action happened", () => {
+                    it("should not create a new round", (done) => {
+                        let client = new Client(host, {FooRepliq});
+
+                        let round = client.current;
+                        client.current.getClientNr().should.equal(0);
+                        client.yield();
+                        client.current.getClientNr().should.equal(0);
+                        should.equal(client.current, round);
+                        client.yield();
+                        client.current.getClientNr().should.equal(0);
+                        <FooRepliq>client.create(FooRepliq, {});
+                        client.yield();
+                        let r = client.current;
+                        client.current.getClientNr().should.equal(1);
+                        client.yield();
+                        client.current.getClientNr().should.equal(1);
+                        should.equal(client.current, r);
+                        stop(client); done();
+                    });
+                });
+            });
+
+            describe("Client-Server Round", () => {
+                describe("Creating a round on the client and yielding", () => {
+                    it("should create a 0-0 round both server and client", (done) => {
+                        let client = new Client(host, {FooRepliq});
+                        let server = new Server(port, {FooRepliq});
+
+                        <FooRepliq>client.create(FooRepliq, {});
+                        client.yield();
+                        delay(() => {
+                            server.current.getServerNr().should.equal(1);
+                            stop(client, server); done();
+                        });
+                    });
+                });
+
+                describe.only("Sending rounds from different clients to the server", () => {
+                    it("should merge them into one", (done) => {
+                        let client1 = new Client(host, {FooRepliq});
+                        let client2 = new Client(host, {FooRepliq});
+                        let server = createServer({port, schema: {FooRepliq}, manualPropagation: true});
+
+                        // client1, round 1
+                        <FooRepliq>client1.create(FooRepliq, {});
+                        client1.yield();
+                        // client 1, round 2
+                        <FooRepliq>client1.create(FooRepliq, {});
+                        client1.yield();
+
+                        // client 2, round 1
+                        <FooRepliq>client2.create(FooRepliq, {});
+                        client2.yield();
+                        // client 2, round 2
+                        <FooRepliq>client2.create(FooRepliq, {});
+                        client2.yield();
+                        //client 2, round 3
+                        <FooRepliq>client2.create(FooRepliq, {});
+                        client2.yield();
+
+                        client1.pending.length.should.equal(2);
+                        client2.pending.length.should.equal(3);
+
+
+
+                        delay(() => {
+                            server.current.getServerNr().should.equal(0);
+                            server.incoming.length.should.equal(5);
+                            server.yield();
+                            server.incoming.length.should.equal(0);
+                            server.current.getServerNr().should.equal(1);
+
+                            delay(() => {
+                                client1.pending.length.should.equal(2);
+                                client2.pending.length.should.equal(3);
+
+                                client1.incoming.length.should.equal(1);
+                                client2.incoming.length.should.equal(1);
+
+                                client1.yield();
+                                client2.yield();
+
+                                client1.incoming.length.should.equal(0);
+                                client1.pending.length.should.equal(0);
+                                client2.incoming.length.should.equal(0);
+                                client2.pending.length.should.equal(0);
+
+                                stop(client1, server); done();
+                            });
+                        });
+                    });
+                });
+            });
+        });
     });
 });

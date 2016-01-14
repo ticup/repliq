@@ -37446,7 +37446,7 @@ var Round = (function () {
     Round.prototype.getOriginId = function () {
         return this.originId;
     };
-    Round.prototype.getOriginNr = function () {
+    Round.prototype.getClientNr = function () {
         return this.originNr;
     };
     Round.prototype.setServerNr = function (nr) {
@@ -37464,13 +37464,13 @@ var Round = (function () {
     Round.prototype.toJSON = function () {
         return {
             serverNr: this.serverNr,
-            originNr: this.originNr,
+            clientNr: this.originNr,
             originId: this.originId,
             operations: this.operations.map(function (op) { return op.toJSON(); })
         };
     };
     Round.fromJSON = function (json, manager) {
-        return new Round(json.originNr, json.originId, json.serverNr, json.operations.map(function (op) { return Operation_1.Operation.fromJSON(op, manager); }));
+        return new Round(json.clientNr, json.originId, json.serverNr, json.operations.map(function (op) { return Operation_1.Operation.fromJSON(op, manager); }));
     };
     return Round;
 })();

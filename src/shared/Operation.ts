@@ -31,6 +31,9 @@ export class Operation {
     }
 
     getNewRepliqIds() {
+        if (this.selector === Repliq.CREATE_SELECTOR) {
+            return [this.targetId].concat(getRepliqReferences(this.args));
+        }
         return getRepliqReferences(this.args);
     }
 

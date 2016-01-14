@@ -7,21 +7,22 @@ import {RepliqManager} from "./RepliqManager";
 import {Repliq} from "./Repliq";
 
 export interface RoundJSON {
-    originNr: number;
+    clientNr: number;
     serverNr: number;
     originId: ClientId;
     operations: OperationJSON[];
 }
 
 export class Round {
-    private originNr : number;
+    private clientNr : number;
     private serverNr : number;
     private originId : ClientId;
+    public  origins  : ClientId[] = [];
     public operations : Operation[];
 
     constructor (originNr: number, originId: ClientId, serverNr = -1, operations = []) {
         this.serverNr   = serverNr;
-        this.originNr   = originNr;
+        this.clientNr   = originNr;
         this.originId   = originId;
         this.operations = operations;
 
@@ -31,8 +32,8 @@ export class Round {
         return this.originId;
     }
 
-    getOriginNr() {
-        return this.originNr;
+    getClientNr() {
+        return this.clientNr;
     }
 
     setServerNr(nr: number) {
@@ -59,11 +60,20 @@ export class Round {
         return this.operations.map((op) => op.targetId);
     }
 
+    containsOrigin(clientId: ClientId) {
+        return this.origins.indexOf(clientId) !== -1;
+    }
+
+    merge(round: Round) {
+        this.operations = this.operations.concat(round.operations);
+        this.origins.push(round.getOriginId());
+    }
+
 
     toJSON(repliqIds?: string[]): RoundJSON {
         let json = {
             serverNr: this.serverNr,
-            originNr: this.originNr,
+            clientNr: this.clientNr,
             originId: this.originId,
             operations: []
         };
@@ -76,13 +86,13 @@ export class Round {
 
     public static fromJSON(json: RoundJSON, manager: RepliqManager) {
         return new Round(
-            json.originNr,
+            json.clientNr,
             json.originId,
             json.serverNr,
             json.operations.map((op) => Operation.fromJSON(op, manager)));
     }
 
     toString() {
-        return "{Round#s:" + this.getServerNr() + "o:" + this.getOriginNr() + " | [" + this.operations.map((op) => op.toString()).join(", "); + "]}";
+        return "{Round#s:" + this.getServerNr() + "o:" + this.getClientNr() + " | [" + this.operations.map((op) => op.toString()).join(", "); + "]}";
     }
 }
