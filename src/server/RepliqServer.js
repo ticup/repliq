@@ -27,22 +27,26 @@ var RepliqServer = (function (_super) {
         this.channel = io(app);
         this.channel.on("connect", function (socket) {
             debug("client connected");
-            socket.on("handshake", function (_a) {
-                var clientId = _a.clientId, clientRound = _a.clientRound, serverRound = _a.serverRound;
+            socket.on("handshake", function (_a, reply) {
+                var clientId = _a.clientId, clientNr = _a.clientNr, serverNr = _a.serverNr;
                 debug("handshaking");
-                _this.clients[clientId] = {
-                    clientNr: -1,
-                    serverNr: -1,
-                    repliqIds: {},
-                    socket: socket
-                };
-                socket.on("rpc", function (rpc, reply) {
-                    _this.handleRpc(clientId, rpc.selector, rpc.args, reply);
-                });
-                socket.on("YieldPull", function (json) {
-                    _this.handleYieldPull(json);
-                });
-                socket.emit("handshake");
+                var newClient = false;
+                var client = _this.getClient(clientId);
+                if (typeof client === "undefined") {
+                    debug("client connects for first time");
+                    newClient = true;
+                    client = _this.newClient(clientId, socket);
+                }
+                else {
+                    client.socket = socket;
+                }
+                debug("received round: " + client.clientNr + " , current round: " + clientNr);
+                _this.setupHandlers(clientId, socket);
+                if (!newClient && serverNr + 1 < _this.getRoundNr()) {
+                    var round = _this.getRoundFrom(clientId, serverNr);
+                    return socket.emit("handshake", { lastClientNr: client.clientNr, lastServerNr: client.serverNr, round: round.toJSON() });
+                }
+                return socket.emit("handshake", { lastClientNr: client.clientNr, lastServerNr: client.serverNr });
             });
         });
         this.channel.on("disconnect", function (socket) {
@@ -54,6 +58,15 @@ var RepliqServer = (function (_super) {
         this.listeners = new Listeners_1.Listeners();
         this.propagator = !manualPropagation;
     }
+    RepliqServer.prototype.setupHandlers = function (clientId, socket) {
+        var _this = this;
+        socket.on("rpc", function (rpc, reply) {
+            _this.handleRpc(clientId, rpc.selector, rpc.args, reply);
+        });
+        socket.on("YieldPull", function (json) {
+            _this.handleYieldPull(json);
+        });
+    };
     RepliqServer.prototype.handleRpc = function (clientId, selector, sargs, reply) {
         var _this = this;
         debug("received rpc " + selector + "(" + sargs + ")");
@@ -122,19 +135,59 @@ var RepliqServer = (function (_super) {
         var roundNr = round.getServerNr();
         debug("broadcasting round " + roundNr);
         Object.keys(this.clients).forEach(function (id) {
-            var client = _this.clients[id];
-            client.serverNr = roundNr;
-            round.operations.forEach(function (op) {
-                if (client.repliqIds[op.targetId]) {
-                    op.getNewRepliqIds().forEach(function (rid) { return _this.addReference(id, rid); });
-                }
-            });
-            var json = round.toJSON(Object.keys(client.repliqIds));
-            json.clientNr = client.clientNr;
-            if (round.containsOrigin(id) || json.operations.length > 0) {
+            if (_this.requiresPush(id, round)) {
+                var client = _this.getClient(id);
+                var json = _this.prepareToSend(id, round);
+                debug("   -> to " + id);
                 client.socket.emit("YieldPush", json);
             }
         });
+    };
+    RepliqServer.prototype.requiresPush = function (id, round) {
+        var client = this.clients[id];
+        if (round.containsOrigin(id)) {
+            return true;
+        }
+        var ops = round.operations.filter(function (op) { return !!client.repliqIds[op.targetId]; });
+        return ops.length > 0;
+    };
+    RepliqServer.prototype.extendReferences = function (id, round) {
+        var _this = this;
+        var client = this.getClient(id);
+        round.operations.forEach(function (op) {
+            if (client.repliqIds[op.targetId]) {
+                op.getNewRepliqIds().forEach(function (rid) { return _this.addReference(id, rid); });
+            }
+        });
+    };
+    RepliqServer.prototype.prepareToSend = function (id, round) {
+        var client = this.getClient(id);
+        client.serverNr = round.getServerNr();
+        this.extendReferences(id, round);
+        var cround = round.copyFor(client.clientNr, this.getReferences(id));
+        var json = cround.toJSON();
+        console.assert(round.containsOrigin(id) || json.operations.length > 0);
+        return json;
+    };
+    RepliqServer.prototype.getRoundFrom = function (id, roundNr) {
+        var _this = this;
+        var sround = new Round_1.Round(this.getClient(id).clientNr, this.getId(), this.getRoundNr() - 1, []);
+        if (roundNr + 1 == this.getRoundNr()) {
+            return sround;
+        }
+        console.assert(this.confirmed.length == 0 || this.confirmed[this.confirmed.length - 1].getServerNr() == this.getRoundNr() - 1);
+        console.assert(roundNr < this.getRoundNr());
+        this.confirmed.forEach(function (round) {
+            if (_this.requiresPush(id, round)) {
+                _this.extendReferences(id, round);
+                var cround = round.copyFor(-1, _this.getReferences(id));
+                sround.merge(cround);
+            }
+        });
+        return sround;
+    };
+    RepliqServer.prototype.getReferences = function (clientId) {
+        return Object.keys(this.clients[clientId].repliqIds);
     };
     RepliqServer.prototype.notifyChanged = function () {
         if (this.propagator) {
@@ -145,6 +198,17 @@ var RepliqServer = (function (_super) {
                 this.requiresYield = true;
             }
         }
+    };
+    RepliqServer.prototype.getClient = function (clientId) {
+        return this.clients[clientId];
+    };
+    RepliqServer.prototype.newClient = function (clientId, socket) {
+        return this.clients[clientId] = {
+            clientNr: -1,
+            serverNr: -1,
+            repliqIds: {},
+            socket: socket
+        };
     };
     RepliqServer.prototype.newRound = function () {
         var nr = this.newRoundNr();

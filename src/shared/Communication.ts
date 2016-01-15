@@ -3,6 +3,8 @@
 import {Repliq, sync} from "./Repliq";
 import {RepliqManager} from "./RepliqManager";
 import {List} from "immutable";
+import {RoundJSON} from "../shared/Round";
+import {ClientId} from "../shared/Types";
 
 export interface RpcRequest {
     selector: string;
@@ -132,4 +134,20 @@ export function getRepliqReferences(val) {
     }
 
     return [];
+}
+
+
+
+export interface HandshakeServer {
+    err?: string;
+    lastClientNr: number;
+    lastServerNr: number;
+    round: RoundJSON;
+}
+
+
+export interface HandshakeClient {
+    clientId: ClientId;
+    clientNr: number;
+    serverNr: number;
 }

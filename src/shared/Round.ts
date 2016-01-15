@@ -20,9 +20,9 @@ export class Round {
     public  origins  : ClientId[] = [];
     public operations : Operation[];
 
-    constructor (originNr: number, originId: ClientId, serverNr = -1, operations = []) {
+    constructor (clientNr: number, originId: ClientId, serverNr = -1, operations = []) {
         this.serverNr   = serverNr;
-        this.clientNr   = originNr;
+        this.clientNr   = clientNr;
         this.originId   = originId;
         this.operations = operations;
 
@@ -70,18 +70,18 @@ export class Round {
     }
 
 
-    toJSON(repliqIds?: string[]): RoundJSON {
-        let json = {
+    toJSON(): RoundJSON {
+        return {
             serverNr: this.serverNr,
             clientNr: this.clientNr,
             originId: this.originId,
-            operations: []
-        };
-        this.operations.forEach((op: Operation) => {
-            if (typeof repliqIds === "undefined" || repliqIds.indexOf(op.targetId) !== -1)
-                json.operations.push(op.toJSON());
-        });
-        return json;
+            operations: this.operations.map((op) => op.toJSON())
+        }
+    }
+
+    copyFor(clientNr: number, repliqIds: string[]) {
+        let ops = this.operations.filter((op: Operation) => repliqIds.indexOf(op.targetId) !== -1);
+        return new Round(clientNr, this.originId, this.serverNr, ops);
     }
 
     public static fromJSON(json: RoundJSON, manager: RepliqManager) {

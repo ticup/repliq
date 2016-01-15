@@ -17,20 +17,39 @@ var RepliqClient = (function (_super) {
         _super.call(this, schema, yieldEvery);
         this.serverNr = -1;
         this.incoming = [];
-        this.channel = io(host, { forceNew: true });
-        this.setupYieldPush();
-        this.handshake();
+        this.connect(host);
     }
-    RepliqClient.prototype.setupYieldPush = function () {
+    RepliqClient.prototype.connect = function (host) {
+        this.channel = io(host, { forceNew: true });
+        this.handshake();
+        return this.onConnectP;
+    };
+    RepliqClient.prototype.setupYieldPush = function (channel) {
         var _this = this;
-        this.channel.on("YieldPush", function (round) { return _this.handleYieldPull(round); });
+        channel.on("YieldPush", function (round) { return _this.handleYieldPull(round); });
     };
     RepliqClient.prototype.handshake = function () {
+        var _this = this;
         this.channel.emit("handshake", { clientId: this.getId(), clientNr: this.getRoundNr(), serverNr: this.serverNr });
         var d = Promise.defer();
         this.onConnectP = d.promise;
-        this.channel.on("handshake", function () {
-            debug("handshaked");
+        this.channel.on("handshake", function (_a) {
+            var err = _a.err, lastClientNr = _a.lastClientNr, lastServerNr = _a.lastServerNr, round = _a.round;
+            if (err) {
+                throw err;
+            }
+            debug("handshaking... clientNr: " + _this.getRoundNr() + " , server received clientNr: " + lastClientNr);
+            if (round) {
+                console.assert(lastClientNr <= _this.getRoundNr());
+                console.assert(lastServerNr <= _this.getServerNr());
+                if (_this.incoming.length > 0) {
+                    _this.yield();
+                }
+                _this.incoming = [Round_1.Round.fromJSON(round, _this)];
+                _this.yield();
+                _this.pending.forEach(function (r) { return _this.channel.emit("YieldPull", r.toJSON()); });
+            }
+            _this.setupYieldPush(_this.channel);
             d.resolve();
         });
     };
@@ -82,16 +101,8 @@ var RepliqClient = (function (_super) {
             });
             var affectedExt = this.replay(this.incoming);
             var confirmedNr = last.getClientNr();
-            var idx;
-            this.pending.forEach(function (r, i) {
-                if (r.getClientNr() <= confirmedNr) {
-                    idx = i;
-                }
-            });
-            if (typeof idx !== "undefined") {
-                this.pending = this.pending.slice(idx + 1);
-            }
-            console.assert(this.serverNr < last.getServerNr() || this.serverNr == -1);
+            this.pending = this.pending.filter(function (r) { return r.getClientNr() > confirmedNr; });
+            console.assert(this.serverNr <= last.getServerNr() || this.serverNr == -1);
             this.serverNr = last.getServerNr();
             this.pending.forEach(function (round) {
                 return _this.play(round);
@@ -100,6 +111,9 @@ var RepliqClient = (function (_super) {
             this.replaying = false;
             affectedExt.forEach(function (rep) { rep.emit(Repliq_1.Repliq.CHANGE_EXTERNAL); rep.emit(Repliq_1.Repliq.CHANGE); });
         }
+    };
+    RepliqClient.prototype.getServerNr = function () {
+        return this.serverNr;
     };
     return RepliqClient;
 })(RepliqManager_1.RepliqManager);

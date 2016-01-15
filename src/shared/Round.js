@@ -1,11 +1,11 @@
 var Operation_1 = require("./Operation");
 var Round = (function () {
-    function Round(originNr, originId, serverNr, operations) {
+    function Round(clientNr, originId, serverNr, operations) {
         if (serverNr === void 0) { serverNr = -1; }
         if (operations === void 0) { operations = []; }
         this.origins = [];
         this.serverNr = serverNr;
-        this.clientNr = originNr;
+        this.clientNr = clientNr;
         this.originId = originId;
         this.operations = operations;
     }
@@ -40,18 +40,17 @@ var Round = (function () {
         this.operations = this.operations.concat(round.operations);
         this.origins.push(round.getOriginId());
     };
-    Round.prototype.toJSON = function (repliqIds) {
-        var json = {
+    Round.prototype.toJSON = function () {
+        return {
             serverNr: this.serverNr,
             clientNr: this.clientNr,
             originId: this.originId,
-            operations: []
+            operations: this.operations.map(function (op) { return op.toJSON(); })
         };
-        this.operations.forEach(function (op) {
-            if (typeof repliqIds === "undefined" || repliqIds.indexOf(op.targetId) !== -1)
-                json.operations.push(op.toJSON());
-        });
-        return json;
+    };
+    Round.prototype.copyFor = function (clientNr, repliqIds) {
+        var ops = this.operations.filter(function (op) { return repliqIds.indexOf(op.targetId) !== -1; });
+        return new Round(clientNr, this.originId, this.serverNr, ops);
     };
     Round.fromJSON = function (json, manager) {
         return new Round(json.clientNr, json.originId, json.serverNr, json.operations.map(function (op) { return Operation_1.Operation.fromJSON(op, manager); }));

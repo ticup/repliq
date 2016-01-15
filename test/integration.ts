@@ -656,7 +656,7 @@ describe("Repliq", () => {
                     });
                 });
 
-                describe.only("Sending rounds from different clients to the server", () => {
+                describe("Sending rounds from different clients to the server", () => {
                     it("should merge them into one", (done) => {
                         let client1 = new Client(host, {FooRepliq});
                         let client2 = new Client(host, {FooRepliq});
@@ -708,6 +708,52 @@ describe("Repliq", () => {
 
                                 stop(client1, server); done();
                             });
+                        });
+                    });
+                });
+            });
+        });
+
+
+        describe("Connectivity", () => {
+            describe("Client reconnects after having pending operations, which the server didn't receive", () => {
+                it("should resend the pending operations", (done) => {
+                    let client = new Client(host, {FooRepliq});
+                    let server = createServer({port, schema: {FooRepliq}, manualPropagation: true});
+
+                    client.onConnect().then(()=> {
+                        client.stop();
+
+                        <FooRepliq>client.create(FooRepliq, {});
+                        client.yield();
+
+                        <FooRepliq>client.create(FooRepliq, {});
+                        client.yield();
+
+                        delay(() => {
+
+                            client.pending.length.should.equal(2);
+                            server.incoming.length.should.equal(0);
+                            server.current.getServerNr().should.equal(0);
+
+                            client.connect(host).then(() => {
+                                delay(() => {
+                                    client.pending.length.should.equal(2);
+                                    server.incoming.length.should.equal(2);
+
+                                    server.yield();
+                                    server.incoming.length.should.equal(0);
+
+                                    delay(() => {
+                                        client.incoming.length.should.equal(1);
+                                        client.yield();
+                                        client.pending.length.should.equal(0);
+                                        stop(client, server);
+                                        done();
+                                    });
+                                });
+                            });
+
                         });
                     });
                 });

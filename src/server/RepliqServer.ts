@@ -8,6 +8,7 @@ import * as guid from "node-uuid";
 
 import * as com from "../shared/Communication";
 import {Repliq} from "../shared/Repliq";
+import {ClientId} from "../shared/Types";
 import {RepliqManager, RepliqTemplateMap} from "../shared/RepliqManager";
 import {Listeners}  from "./Listeners";
 import {OperationJSON} from "../shared/Operation";
@@ -26,6 +27,7 @@ export interface ServerOptions {
     yieldEvery?: number;
     manualPropagation?: boolean;
 }
+
 
 export function createServer(opts: ServerOptions) {
     return new RepliqServer(opts.port ? opts.port : opts.app, opts.schema, opts.yieldEvery, opts.manualPropagation);
@@ -73,30 +75,31 @@ export class RepliqServer extends RepliqManager {
         this.channel.on("connect", (socket: SocketIO.Socket) => {
             debug("client connected");
 
-            socket.on("handshake", ({clientId, clientRound, serverRound}) => {
+            socket.on("handshake", ({clientId, clientNr, serverNr}: com.HandshakeClient, reply) => {
                 debug("handshaking");
 
-                this.clients[clientId] = {
-                    clientNr: -1,
-                    serverNr: -1,
-                    repliqIds: {},
-                    socket: socket
-                };
+                var newClient = false;
+                var client = this.getClient(clientId);
 
-                //if (typeof rounds === "undefined") {
-                //    return socket.emit("initiate");
-                //}
-                //
-                //socket.emit("sync", {rounds.server, rounds.client, rounds: });
+                if (typeof client === "undefined") {
+                    debug("client connects for first time");
+                    newClient = true;
+                    client = this.newClient(clientId, socket);
+                } else {
+                    client.socket = socket;
+                }
 
-                socket.on("rpc", (rpc: com.RpcRequest, reply: Function) => {
-                    this.handleRpc(clientId, rpc.selector, rpc.args, reply);
-                });
-                socket.on("YieldPull", (json: RoundJSON) => {
-                    this.handleYieldPull(json);
-                });
+                debug("received round: " + client.clientNr + " , current round: " + clientNr);
 
-                socket.emit("handshake");
+                this.setupHandlers(clientId, socket);
+
+                if (!newClient && serverNr + 1 < this.getRoundNr()) {
+
+                    let round = this.getRoundFrom(clientId, serverNr);
+                    return socket.emit("handshake", <com.HandshakeServer>{lastClientNr: client.clientNr, lastServerNr: client.serverNr, round: round.toJSON()});
+                }
+
+                return socket.emit("handshake", <com.HandshakeServer>{lastClientNr: client.clientNr, lastServerNr: client.serverNr});
             });
 
 
@@ -111,6 +114,15 @@ export class RepliqServer extends RepliqManager {
 
 
         this.propagator = !manualPropagation;
+    }
+
+    setupHandlers(clientId: ClientId, socket: SocketIO.Socket) {
+        socket.on("rpc", (rpc: com.RpcRequest, reply: Function) => {
+            this.handleRpc(clientId, rpc.selector, rpc.args, reply);
+        });
+        socket.on("YieldPull", (json: RoundJSON) => {
+            this.handleYieldPull(json);
+        });
     }
 
     handleRpc(clientId: string, selector: string, sargs: com.ValueJSON[], reply: Function) {
@@ -193,23 +205,67 @@ export class RepliqServer extends RepliqManager {
         let roundNr = round.getServerNr();
         debug("broadcasting round " + roundNr);
         Object.keys(this.clients).forEach((id) => {
-            let client = this.clients[id];
-
-            client.serverNr = roundNr;
-
-            round.operations.forEach((op) => {
-                if (client.repliqIds[op.targetId]) {
-                    op.getNewRepliqIds().forEach((rid) => this.addReference(id, rid));
-                }
-            });
-
-            let json = round.toJSON(Object.keys(client.repliqIds));
-            json.clientNr = client.clientNr;
-
-            if (round.containsOrigin(id) || json.operations.length > 0) {
+            if (this.requiresPush(id, round)) {
+                let client = this.getClient(id);
+                let json = this.prepareToSend(id, round);
+                debug("   -> to " + id);
                 client.socket.emit("YieldPush", json);
             }
         });
+    }
+
+
+    requiresPush(id: ClientId, round: Round) {
+        let client = this.clients[id];
+        if (round.containsOrigin(id)) {
+            return true;
+        }
+
+        let ops = round.operations.filter((op: Operation) => !!client.repliqIds[op.targetId]);
+        return ops.length > 0;
+    }
+
+    extendReferences(id: ClientId, round: Round) {
+        let client = this.getClient(id);
+        round.operations.forEach((op) => {
+            if (client.repliqIds[op.targetId]) {
+                op.getNewRepliqIds().forEach((rid) => this.addReference(id, rid));
+            }
+        });
+    }
+
+    // assumes requiresPush is checked first.
+    prepareToSend(id: ClientId, round: Round): RoundJSON {
+        let client = this.getClient(id);
+
+        client.serverNr = round.getServerNr();
+        this.extendReferences(id, round);
+        let cround = round.copyFor(client.clientNr, this.getReferences(id));
+        let json = cround.toJSON();
+        console.assert(round.containsOrigin(id) || json.operations.length > 0);
+        return json;
+    }
+
+    getRoundFrom(id: ClientId, roundNr: number) {
+        let sround = new Round(this.getClient(id).clientNr, this.getId(), this.getRoundNr() - 1, []);
+        if (roundNr + 1 == this.getRoundNr()) {
+            return sround;
+        }
+
+        console.assert(this.confirmed.length == 0 || this.confirmed[this.confirmed.length - 1].getServerNr() == this.getRoundNr() - 1);
+        console.assert(roundNr < this.getRoundNr());
+        this.confirmed.forEach((round: Round) => {
+            if (this.requiresPush(id, round)) {
+                this.extendReferences(id, round);
+                let cround = round.copyFor(-1, this.getReferences(id));
+                sround.merge(cround);
+            }
+        });
+        return sround;
+    }
+
+    getReferences(clientId: ClientId) {
+        return Object.keys(this.clients[clientId].repliqIds);
     }
 
     // Yield Propagator Mode
@@ -226,6 +282,20 @@ export class RepliqServer extends RepliqManager {
     }
 
 
+
+    private getClient(clientId: ClientId) {
+        return this.clients[clientId];
+    }
+
+
+    private newClient(clientId: ClientId, socket: SocketIO.Socket) {
+        return this.clients[clientId] = {
+            clientNr: -1,
+            serverNr: -1,
+            repliqIds: {},
+            socket: socket
+        };
+    }
 
 
 

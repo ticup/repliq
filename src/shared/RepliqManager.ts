@@ -135,7 +135,7 @@ export class RepliqManager {
         return this.repliqsData[id];
     }
 
-    getRoundNr() {
+        getRoundNr() {
         return this.roundNr;
     }
 

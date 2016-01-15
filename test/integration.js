@@ -634,7 +634,7 @@ describe("Repliq", function () {
                         });
                     });
                 });
-                describe.only("Sending rounds from different clients to the server", function () {
+                describe("Sending rounds from different clients to the server", function () {
                     it("should merge them into one", function (done) {
                         var client1 = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
                         var client2 = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
@@ -670,6 +670,41 @@ describe("Repliq", function () {
                                 client2.pending.length.should.equal(0);
                                 stop(client1, server);
                                 done();
+                            });
+                        });
+                    });
+                });
+            });
+        });
+        describe("Connectivity", function () {
+            describe("Client reconnects after having pending operations, which the server didn't receive", function () {
+                it("should resend the pending operations", function (done) {
+                    var client = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
+                    var server = RepliqServer_1.createServer({ port: port, schema: { FooRepliq: FooRepliq }, manualPropagation: true });
+                    client.onConnect().then(function () {
+                        client.stop();
+                        client.create(FooRepliq, {});
+                        client.yield();
+                        client.create(FooRepliq, {});
+                        client.yield();
+                        delay(function () {
+                            client.pending.length.should.equal(2);
+                            server.incoming.length.should.equal(0);
+                            server.current.getServerNr().should.equal(0);
+                            client.connect(host).then(function () {
+                                delay(function () {
+                                    client.pending.length.should.equal(2);
+                                    server.incoming.length.should.equal(2);
+                                    server.yield();
+                                    server.incoming.length.should.equal(0);
+                                    delay(function () {
+                                        client.incoming.length.should.equal(1);
+                                        client.yield();
+                                        client.pending.length.should.equal(0);
+                                        stop(client, server);
+                                        done();
+                                    });
+                                });
                             });
                         });
                     });

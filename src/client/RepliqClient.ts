@@ -16,6 +16,7 @@ import {Operation} from "../shared/Operation";
 import {RepliqTemplateMap} from "../shared/RepliqManager";
 let debug = Debug("Repliq:com:client");
 
+
 export class RepliqClient extends RepliqManager {
 
     onConnectP : Promise<any>;
@@ -28,21 +29,44 @@ export class RepliqClient extends RepliqManager {
 
     constructor(host: string, schema?: RepliqTemplateMap, yieldEvery?: number) {
         super(schema, yieldEvery);
-        this.channel = io(host, {forceNew: true});
-        this.setupYieldPush();
-        this.handshake();
+        this.connect(host);
     }
 
-    setupYieldPush() {
-        this.channel.on("YieldPush", (round: RoundJSON) => this.handleYieldPull(round));
+    connect(host: string) {
+        this.channel = io(host, {forceNew: true});
+        this.handshake();
+        return this.onConnectP;
+    }
+
+    setupYieldPush(channel: SocketIO.Socket) {
+        channel.on("YieldPush", (round: RoundJSON) => this.handleYieldPull(round));
     }
 
     handshake() {
-        this.channel.emit("handshake", {clientId: this.getId(), clientNr: this.getRoundNr(), serverNr: this.serverNr});
+        this.channel.emit("handshake", <com.HandshakeClient>{clientId: this.getId(), clientNr: this.getRoundNr(), serverNr: this.serverNr});
         let d = Promise.defer();
         this.onConnectP = d.promise;
-        this.channel.on("handshake", () => {
-            debug("handshaked");
+        this.channel.on("handshake", ({err, lastClientNr, lastServerNr, round}: com.HandshakeServer) => {
+            if (err) {
+                // Requires complete reset of the data
+                throw err;
+            }
+            debug("handshaking... clientNr: " + this.getRoundNr() + " , server received clientNr: " + lastClientNr);
+
+            if (round) {
+                console.assert(lastClientNr <= this.getRoundNr());
+                console.assert(lastServerNr <= this.getServerNr());
+
+                if (this.incoming.length > 0) {
+                    this.yield();
+                }
+                this.incoming = [Round.fromJSON(round, this)];
+                this.yield();
+
+                this.pending.forEach((r:Round) => this.channel.emit("YieldPull", r.toJSON()));
+            }
+            this.setupYieldPush(this.channel);
+
             d.resolve();
         });
     }
@@ -112,17 +136,10 @@ export class RepliqClient extends RepliqManager {
 
             // 3) remove pending rounds up to where it is confirmed
             let confirmedNr = last.getClientNr();
-            let idx;
-            this.pending.forEach((r: Round, i) => {
-               if (r.getClientNr() <= confirmedNr) {
-                   idx = i;
-               }
-            });
-            if (typeof idx !== "undefined") {
-                this.pending = this.pending.slice(idx + 1);
-            }
+            this.pending = this.pending.filter((r: Round) => r.getClientNr() > confirmedNr);
 
-            console.assert(this.serverNr < last.getServerNr() || this.serverNr == -1);
+
+            console.assert(this.serverNr <= last.getServerNr() || this.serverNr == -1);
             this.serverNr = last.getServerNr();
 
             // 4) recompute tentative state
@@ -137,5 +154,9 @@ export class RepliqClient extends RepliqManager {
 
     }
 
+
+    getServerNr() {
+        return this.serverNr;
+    }
 
 }
