@@ -38,7 +38,7 @@ export class RepliqClient extends RepliqManager {
         return this.onConnectP;
     }
 
-    setupYieldPush(channel: SocketIO.Socket) {
+    setupYieldPush(channel: SocketIOClient.Socket) {
         channel.on("YieldPush", (round: RoundJSON) => this.handleYieldPull(round));
     }
 
@@ -51,6 +51,9 @@ export class RepliqClient extends RepliqManager {
                 // Requires complete reset of the data
                 throw err;
             }
+
+            this.setupYieldPush(this.channel);
+
             debug("handshaking... clientNr: " + this.getRoundNr() + " , server received clientNr: " + lastClientNr);
 
             if (round) {
@@ -62,10 +65,12 @@ export class RepliqClient extends RepliqManager {
                 }
                 this.incoming = [Round.fromJSON(round, this)];
                 this.yield();
+            }
 
+            if (this.pending.length > 0) {
+                console.assert(this.pending[this.pending.length - 1].getClientNr() > lastClientNr);
                 this.pending.forEach((r:Round) => this.channel.emit("YieldPull", r.toJSON()));
             }
-            this.setupYieldPush(this.channel);
 
             d.resolve();
         });

@@ -8,7 +8,7 @@ var debug = Debug("Repliq:local");
 var RepliqManager = (function () {
     function RepliqManager(schema, yieldEvery) {
         this.id = guid.v4();
-        this.roundNr = 0;
+        this.roundNr = -1;
         this.templates = {};
         this.repliqs = {};
         this.repliqsData = {};
@@ -155,7 +155,7 @@ var RepliqManager = (function () {
         return new Round_1.Round(this.newRoundNr(), this.getId());
     };
     RepliqManager.prototype.newRoundNr = function () {
-        return this.roundNr++;
+        return ++this.roundNr;
     };
     RepliqManager.prototype.notifyChanged = function () {
     };

@@ -715,7 +715,7 @@ describe("Repliq", () => {
         });
 
 
-        describe("Connectivity", () => {
+        describe.only("Connectivity", () => {
             describe("Client reconnects after having pending operations, which the server didn't receive", () => {
                 it("client should resend the pending operations to server", (done) => {
                     let client = new Client(host, {FooRepliq});
@@ -759,7 +759,7 @@ describe("Repliq", () => {
                 });
             });
 
-            describe.only("Client reconnects after server has new logs, which the client doesn't receive yet", () => {
+            describe("Client reconnects after server has new logs, which the client doesn't receive yet", () => {
                 it("server should resend the pending operations to client", (done) => {
                     let client = new Client(host, {FooRepliq});
                     let server = createServer({port, schema: {FooRepliq}, manualPropagation: true});

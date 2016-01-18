@@ -38,6 +38,7 @@ var RepliqClient = (function (_super) {
             if (err) {
                 throw err;
             }
+            _this.setupYieldPush(_this.channel);
             debug("handshaking... clientNr: " + _this.getRoundNr() + " , server received clientNr: " + lastClientNr);
             if (round) {
                 console.assert(lastClientNr <= _this.getRoundNr());
@@ -47,9 +48,11 @@ var RepliqClient = (function (_super) {
                 }
                 _this.incoming = [Round_1.Round.fromJSON(round, _this)];
                 _this.yield();
+            }
+            if (_this.pending.length > 0) {
+                console.assert(_this.pending[_this.pending.length - 1].getClientNr() > lastClientNr);
                 _this.pending.forEach(function (r) { return _this.channel.emit("YieldPull", r.toJSON()); });
             }
-            _this.setupYieldPush(_this.channel);
             d.resolve();
         });
     };

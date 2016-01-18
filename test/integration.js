@@ -676,7 +676,7 @@ describe("Repliq", function () {
                 });
             });
         });
-        describe("Connectivity", function () {
+        describe.only("Connectivity", function () {
             describe("Client reconnects after having pending operations, which the server didn't receive", function () {
                 it("client should resend the pending operations to server", function (done) {
                     var client = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
@@ -710,7 +710,7 @@ describe("Repliq", function () {
                     });
                 });
             });
-            describe.only("Client reconnects after server has new logs, which the client doesn't receive yet", function () {
+            describe("Client reconnects after server has new logs, which the client doesn't receive yet", function () {
                 it("server should resend the pending operations to client", function (done) {
                     var client = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
                     var server = RepliqServer_1.createServer({ port: port, schema: { FooRepliq: FooRepliq }, manualPropagation: true });

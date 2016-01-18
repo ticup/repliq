@@ -177,7 +177,7 @@ var RepliqServer = (function (_super) {
         if (roundNr + 1 == this.getRoundNr()) {
             return sround;
         }
-        console.assert(this.confirmed.length == 0 || this.confirmed[this.confirmed.length - 1].getServerNr() == this.getRoundNr() - 2);
+        console.assert(this.confirmed.length == 0 || this.confirmed[this.confirmed.length - 1].getServerNr() == this.getRoundNr() - 1);
         console.assert(roundNr < this.getRoundNr());
         this.confirmed.forEach(function (round) {
             if (_this.requiresPush(id, round)) {

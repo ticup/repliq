@@ -47,7 +47,7 @@ export class RepliqManager {
 
     constructor(schema?: RepliqTemplateMap, yieldEvery?: number) {
         this.id = guid.v4();
-        this.roundNr = 0;
+        this.roundNr = -1;
         this.templates = {};
         this.repliqs = {};
         this.repliqsData = {};
@@ -221,7 +221,7 @@ export class RepliqManager {
     }
 
     protected newRoundNr() {
-        return this.roundNr++;
+        return ++this.roundNr;
     }
 
 
