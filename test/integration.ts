@@ -717,7 +717,7 @@ describe("Repliq", () => {
 
         describe("Connectivity", () => {
             describe("Client reconnects after having pending operations, which the server didn't receive", () => {
-                it("should resend the pending operations", (done) => {
+                it("client should resend the pending operations to server", (done) => {
                     let client = new Client(host, {FooRepliq});
                     let server = createServer({port, schema: {FooRepliq}, manualPropagation: true});
 
@@ -752,6 +752,39 @@ describe("Repliq", () => {
                                         done();
                                     });
                                 });
+                            });
+
+                        });
+                    });
+                });
+            });
+
+            describe.only("Client reconnects after server has new logs, which the client doesn't receive yet", () => {
+                it("server should resend the pending operations to client", (done) => {
+                    let client = new Client(host, {FooRepliq});
+                    let server = createServer({port, schema: {FooRepliq}, manualPropagation: true});
+
+                    client.onConnect().then(()=> {
+                        let c = <FooRepliq>client.create(FooRepliq, {});
+                        client.yield();
+                        delay(() => {
+                            server.yield();
+                            let s = server.getRepliq(c.getId());
+                            should.exist(s);
+
+                            client.stop();
+
+                            let s2 = <FooRepliq>client.create(FooRepliq, {});
+                            server.yield();
+                            s.setFoo(s2);
+                            server.yield();
+
+                            client.connect(host).then(() => {
+
+                                // TODO: change getServerNr() such that it is the current nr
+
+                                c.get("foo").getId().should.equal(s2.getId())
+                                stop(client, server); done();
                             });
 
                         });

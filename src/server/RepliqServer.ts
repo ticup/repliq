@@ -163,6 +163,7 @@ export class RepliqServer extends RepliqManager {
             this.replay([cur]); // TODO: actually, should just commit here!!
             this.broadcastRound(cur);
             this.current = this.newRound();
+            this.confirmed.push(cur);
         }
 
         // client->master yield
@@ -188,8 +189,10 @@ export class RepliqServer extends RepliqManager {
                 });
             });
             this.broadcastRound(cRound);
+            this.confirmed.push(cRound);
             this.incoming = [];
             this.current = this.newRound();
+
 
             affectedExt.forEach((rep: Repliq) => { rep.emit(Repliq.CHANGE_EXTERNAL); rep.emit(Repliq.CHANGE) });
         }

@@ -100,6 +100,7 @@ var RepliqServer = (function (_super) {
             this.replay([cur]);
             this.broadcastRound(cur);
             this.current = this.newRound();
+            this.confirmed.push(cur);
         }
         if (this.incoming.length > 0) {
             var cRound = this.current;
@@ -120,6 +121,7 @@ var RepliqServer = (function (_super) {
                 });
             });
             this.broadcastRound(cRound);
+            this.confirmed.push(cRound);
             this.incoming = [];
             this.current = this.newRound();
             affectedExt.forEach(function (rep) { rep.emit(Repliq_1.Repliq.CHANGE_EXTERNAL); rep.emit(Repliq_1.Repliq.CHANGE); });
@@ -175,7 +177,7 @@ var RepliqServer = (function (_super) {
         if (roundNr + 1 == this.getRoundNr()) {
             return sround;
         }
-        console.assert(this.confirmed.length == 0 || this.confirmed[this.confirmed.length - 1].getServerNr() == this.getRoundNr() - 1);
+        console.assert(this.confirmed.length == 0 || this.confirmed[this.confirmed.length - 1].getServerNr() == this.getRoundNr() - 2);
         console.assert(roundNr < this.getRoundNr());
         this.confirmed.forEach(function (round) {
             if (_this.requiresPush(id, round)) {

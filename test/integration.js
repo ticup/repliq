@@ -678,7 +678,7 @@ describe("Repliq", function () {
         });
         describe("Connectivity", function () {
             describe("Client reconnects after having pending operations, which the server didn't receive", function () {
-                it("should resend the pending operations", function (done) {
+                it("client should resend the pending operations to server", function (done) {
                     var client = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
                     var server = RepliqServer_1.createServer({ port: port, schema: { FooRepliq: FooRepliq }, manualPropagation: true });
                     client.onConnect().then(function () {
@@ -705,6 +705,31 @@ describe("Repliq", function () {
                                         done();
                                     });
                                 });
+                            });
+                        });
+                    });
+                });
+            });
+            describe.only("Client reconnects after server has new logs, which the client doesn't receive yet", function () {
+                it("server should resend the pending operations to client", function (done) {
+                    var client = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
+                    var server = RepliqServer_1.createServer({ port: port, schema: { FooRepliq: FooRepliq }, manualPropagation: true });
+                    client.onConnect().then(function () {
+                        var c = client.create(FooRepliq, {});
+                        client.yield();
+                        delay(function () {
+                            server.yield();
+                            var s = server.getRepliq(c.getId());
+                            should.exist(s);
+                            client.stop();
+                            var s2 = client.create(FooRepliq, {});
+                            server.yield();
+                            s.setFoo(s2);
+                            server.yield();
+                            client.connect(host).then(function () {
+                                c.get("foo").getId().should.equal(s2.getId());
+                                stop(client, server);
+                                done();
                             });
                         });
                     });

@@ -41,7 +41,7 @@ var RepliqClient = (function (_super) {
             debug("handshaking... clientNr: " + _this.getRoundNr() + " , server received clientNr: " + lastClientNr);
             if (round) {
                 console.assert(lastClientNr <= _this.getRoundNr());
-                console.assert(lastServerNr <= _this.getServerNr());
+                console.assert(lastServerNr <= _this.getServerNr() || _this.getServerNr() == -1);
                 if (_this.incoming.length > 0) {
                     _this.yield();
                 }

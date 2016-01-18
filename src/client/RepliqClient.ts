@@ -55,7 +55,7 @@ export class RepliqClient extends RepliqManager {
 
             if (round) {
                 console.assert(lastClientNr <= this.getRoundNr());
-                console.assert(lastServerNr <= this.getServerNr());
+                console.assert(lastServerNr <= this.getServerNr() || this.getServerNr() == -1);
 
                 if (this.incoming.length > 0) {
                     this.yield();
