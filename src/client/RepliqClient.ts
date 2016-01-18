@@ -113,8 +113,6 @@ export class RepliqClient extends RepliqManager {
     //    return r;
     //}
 
-    // TODO: work with merging rounds, save id.
-
     public yield() {
         // client->master yield
         if (this.current.hasOperations()) {
@@ -130,6 +128,7 @@ export class RepliqClient extends RepliqManager {
         if (this.incoming.length > 0) {
             this.replaying = true;
 
+            let pending = this.pending;
             let last = this.incoming[this.incoming.length - 1];
 
             // 1) reset to commit values
@@ -141,7 +140,7 @@ export class RepliqClient extends RepliqManager {
 
             // 3) remove pending rounds up to where it is confirmed
             let confirmedNr = last.getClientNr();
-            this.pending = this.pending.filter((r: Round) => r.getClientNr() > confirmedNr);
+            this.pending = pending.filter((r: Round) => r.getClientNr() > confirmedNr);
 
 
             console.assert(this.serverNr <= last.getServerNr() || this.serverNr == -1);
@@ -152,6 +151,7 @@ export class RepliqClient extends RepliqManager {
                 this.play(round));
 
             this.incoming = [];
+            pending.forEach((r: Round) => r.getClientNr() <= confirmedNr ? this.confirmed.push(r) : null);
 
             this.replaying = false;
             affectedExt.forEach((rep: Repliq) => { rep.emit(Repliq.CHANGE_EXTERNAL); rep.emit(Repliq.CHANGE)});

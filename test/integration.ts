@@ -645,13 +645,28 @@ describe("Repliq", () => {
                 describe("Creating a round on the client and yielding", () => {
                     it("should create a 0-0 round both server and client", (done) => {
                         let client = new Client(host, {FooRepliq});
-                        let server = new Server(port, {FooRepliq});
+                        let server = createServer({port, schema: {FooRepliq}, manualPropagation: true});
 
-                        <FooRepliq>client.create(FooRepliq, {});
-                        client.yield();
-                        delay(() => {
-                            server.current.getServerNr().should.equal(1);
-                            stop(client, server); done();
+                        client.onConnect().then(() => {
+                            <FooRepliq>client.create(FooRepliq, {});
+                            client.yield();
+                            delay(() => {
+                                server.current.getServerNr().should.equal(0);
+                                server.yield();
+                                server.current.getServerNr().should.equal(1);
+
+                                delay(() => {
+                                    client.incoming.length.should.equal(1);
+                                    client.incoming[0].getServerNr().should.equal(0);
+                                    client.incoming[0].getClientNr().should.equal(0);
+                                    client.yield();
+                                    client.incoming.length.should.equal(0);
+                                    client.confirmed.length.should.equal(1);
+                                    client.current.getClientNr().should.equal(1);
+                                    server.current.getServerNr().should.equal(1);
+                                    stop(client, server); done();
+                                });
+                            });
                         });
                     });
                 });
@@ -662,51 +677,54 @@ describe("Repliq", () => {
                         let client2 = new Client(host, {FooRepliq});
                         let server = createServer({port, schema: {FooRepliq}, manualPropagation: true});
 
-                        // client1, round 1
-                        <FooRepliq>client1.create(FooRepliq, {});
-                        client1.yield();
-                        // client 1, round 2
-                        <FooRepliq>client1.create(FooRepliq, {});
-                        client1.yield();
+                        Promise.all([client1.onConnect(), client2.onConnect()]).then(() => {
 
-                        // client 2, round 1
-                        <FooRepliq>client2.create(FooRepliq, {});
-                        client2.yield();
-                        // client 2, round 2
-                        <FooRepliq>client2.create(FooRepliq, {});
-                        client2.yield();
-                        //client 2, round 3
-                        <FooRepliq>client2.create(FooRepliq, {});
-                        client2.yield();
+                            // client1, round 1
+                            <FooRepliq>client1.create(FooRepliq, {});
+                            client1.yield();
+                            // client 1, round 2
+                            <FooRepliq>client1.create(FooRepliq, {});
+                            client1.yield();
 
-                        client1.pending.length.should.equal(2);
-                        client2.pending.length.should.equal(3);
+                            // client 2, round 1
+                            <FooRepliq>client2.create(FooRepliq, {});
+                            client2.yield();
+                            // client 2, round 2
+                            <FooRepliq>client2.create(FooRepliq, {});
+                            client2.yield();
+                            //client 2, round 3
+                            <FooRepliq>client2.create(FooRepliq, {});
+                            client2.yield();
 
+                            client1.pending.length.should.equal(2);
+                            client2.pending.length.should.equal(3);
 
-
-                        delay(() => {
-                            server.current.getServerNr().should.equal(0);
-                            server.incoming.length.should.equal(5);
-                            server.yield();
-                            server.incoming.length.should.equal(0);
-                            server.current.getServerNr().should.equal(1);
 
                             delay(() => {
-                                client1.pending.length.should.equal(2);
-                                client2.pending.length.should.equal(3);
+                                server.current.getServerNr().should.equal(0);
+                                server.incoming.length.should.equal(5);
+                                server.yield();
+                                server.incoming.length.should.equal(0);
+                                server.current.getServerNr().should.equal(1);
 
-                                client1.incoming.length.should.equal(1);
-                                client2.incoming.length.should.equal(1);
+                                delay(() => {
+                                    client1.pending.length.should.equal(2);
+                                    client2.pending.length.should.equal(3);
 
-                                client1.yield();
-                                client2.yield();
+                                    client1.incoming.length.should.equal(1);
+                                    client2.incoming.length.should.equal(1);
 
-                                client1.incoming.length.should.equal(0);
-                                client1.pending.length.should.equal(0);
-                                client2.incoming.length.should.equal(0);
-                                client2.pending.length.should.equal(0);
+                                    client1.yield();
+                                    client2.yield();
 
-                                stop(client1, server); done();
+                                    client1.incoming.length.should.equal(0);
+                                    client1.pending.length.should.equal(0);
+                                    client2.incoming.length.should.equal(0);
+                                    client2.pending.length.should.equal(0);
+
+                                    stop(client1, server);
+                                    done();
+                                });
                             });
                         });
                     });
@@ -715,7 +733,7 @@ describe("Repliq", () => {
         });
 
 
-        describe.only("Connectivity", () => {
+        describe("Connectivity", () => {
             describe("Client reconnects after having pending operations, which the server didn't receive", () => {
                 it("client should resend the pending operations to server", (done) => {
                     let client = new Client(host, {FooRepliq});

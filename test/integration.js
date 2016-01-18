@@ -624,13 +624,27 @@ describe("Repliq", function () {
                 describe("Creating a round on the client and yielding", function () {
                     it("should create a 0-0 round both server and client", function (done) {
                         var client = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
-                        var server = new index_2.RepliqServer(port, { FooRepliq: FooRepliq });
-                        client.create(FooRepliq, {});
-                        client.yield();
-                        delay(function () {
-                            server.current.getServerNr().should.equal(1);
-                            stop(client, server);
-                            done();
+                        var server = RepliqServer_1.createServer({ port: port, schema: { FooRepliq: FooRepliq }, manualPropagation: true });
+                        client.onConnect().then(function () {
+                            client.create(FooRepliq, {});
+                            client.yield();
+                            delay(function () {
+                                server.current.getServerNr().should.equal(0);
+                                server.yield();
+                                server.current.getServerNr().should.equal(1);
+                                delay(function () {
+                                    client.incoming.length.should.equal(1);
+                                    client.incoming[0].getServerNr().should.equal(0);
+                                    client.incoming[0].getClientNr().should.equal(0);
+                                    client.yield();
+                                    client.incoming.length.should.equal(0);
+                                    client.confirmed.length.should.equal(1);
+                                    client.current.getClientNr().should.equal(1);
+                                    server.current.getServerNr().should.equal(1);
+                                    stop(client, server);
+                                    done();
+                                });
+                            });
                         });
                     });
                 });
@@ -639,44 +653,46 @@ describe("Repliq", function () {
                         var client1 = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
                         var client2 = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
                         var server = RepliqServer_1.createServer({ port: port, schema: { FooRepliq: FooRepliq }, manualPropagation: true });
-                        client1.create(FooRepliq, {});
-                        client1.yield();
-                        client1.create(FooRepliq, {});
-                        client1.yield();
-                        client2.create(FooRepliq, {});
-                        client2.yield();
-                        client2.create(FooRepliq, {});
-                        client2.yield();
-                        client2.create(FooRepliq, {});
-                        client2.yield();
-                        client1.pending.length.should.equal(2);
-                        client2.pending.length.should.equal(3);
-                        delay(function () {
-                            server.current.getServerNr().should.equal(0);
-                            server.incoming.length.should.equal(5);
-                            server.yield();
-                            server.incoming.length.should.equal(0);
-                            server.current.getServerNr().should.equal(1);
+                        Promise.all([client1.onConnect(), client2.onConnect()]).then(function () {
+                            client1.create(FooRepliq, {});
+                            client1.yield();
+                            client1.create(FooRepliq, {});
+                            client1.yield();
+                            client2.create(FooRepliq, {});
+                            client2.yield();
+                            client2.create(FooRepliq, {});
+                            client2.yield();
+                            client2.create(FooRepliq, {});
+                            client2.yield();
+                            client1.pending.length.should.equal(2);
+                            client2.pending.length.should.equal(3);
                             delay(function () {
-                                client1.pending.length.should.equal(2);
-                                client2.pending.length.should.equal(3);
-                                client1.incoming.length.should.equal(1);
-                                client2.incoming.length.should.equal(1);
-                                client1.yield();
-                                client2.yield();
-                                client1.incoming.length.should.equal(0);
-                                client1.pending.length.should.equal(0);
-                                client2.incoming.length.should.equal(0);
-                                client2.pending.length.should.equal(0);
-                                stop(client1, server);
-                                done();
+                                server.current.getServerNr().should.equal(0);
+                                server.incoming.length.should.equal(5);
+                                server.yield();
+                                server.incoming.length.should.equal(0);
+                                server.current.getServerNr().should.equal(1);
+                                delay(function () {
+                                    client1.pending.length.should.equal(2);
+                                    client2.pending.length.should.equal(3);
+                                    client1.incoming.length.should.equal(1);
+                                    client2.incoming.length.should.equal(1);
+                                    client1.yield();
+                                    client2.yield();
+                                    client1.incoming.length.should.equal(0);
+                                    client1.pending.length.should.equal(0);
+                                    client2.incoming.length.should.equal(0);
+                                    client2.pending.length.should.equal(0);
+                                    stop(client1, server);
+                                    done();
+                                });
                             });
                         });
                     });
                 });
             });
         });
-        describe.only("Connectivity", function () {
+        describe("Connectivity", function () {
             describe("Client reconnects after having pending operations, which the server didn't receive", function () {
                 it("client should resend the pending operations to server", function (done) {
                     var client = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });

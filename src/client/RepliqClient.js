@@ -98,19 +98,21 @@ var RepliqClient = (function (_super) {
         }
         if (this.incoming.length > 0) {
             this.replaying = true;
+            var pending = this.pending;
             var last = this.incoming[this.incoming.length - 1];
             this.forEachData(function (_, r) {
                 return r.setToCommit();
             });
             var affectedExt = this.replay(this.incoming);
             var confirmedNr = last.getClientNr();
-            this.pending = this.pending.filter(function (r) { return r.getClientNr() > confirmedNr; });
+            this.pending = pending.filter(function (r) { return r.getClientNr() > confirmedNr; });
             console.assert(this.serverNr <= last.getServerNr() || this.serverNr == -1);
             this.serverNr = last.getServerNr();
             this.pending.forEach(function (round) {
                 return _this.play(round);
             });
             this.incoming = [];
+            pending.forEach(function (r) { return r.getClientNr() <= confirmedNr ? _this.confirmed.push(r) : null; });
             this.replaying = false;
             affectedExt.forEach(function (rep) { rep.emit(Repliq_1.Repliq.CHANGE_EXTERNAL); rep.emit(Repliq_1.Repliq.CHANGE); });
         }
