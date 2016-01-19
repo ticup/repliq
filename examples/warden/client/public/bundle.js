@@ -36889,8 +36889,7 @@ var RepliqClient = (function (_super) {
     }
     RepliqClient.prototype.connect = function (host) {
         this.channel = io(host, { forceNew: true });
-        this.handshake();
-        return this.onConnectP;
+        return this.handshake();
     };
     RepliqClient.prototype.setupYieldPush = function (channel) {
         var _this = this;
@@ -36899,30 +36898,32 @@ var RepliqClient = (function (_super) {
     RepliqClient.prototype.handshake = function () {
         var _this = this;
         this.channel.emit("handshake", { clientId: this.getId(), clientNr: this.getRoundNr(), serverNr: this.serverNr });
-        var d = Promise.defer();
-        this.onConnectP = d.promise;
-        this.channel.on("handshake", function (_a) {
-            var err = _a.err, lastClientNr = _a.lastClientNr, lastServerNr = _a.lastServerNr, round = _a.round;
-            if (err) {
-                throw err;
-            }
-            _this.setupYieldPush(_this.channel);
-            debug("handshaking... clientNr: " + _this.getRoundNr() + " , server received clientNr: " + lastClientNr);
-            if (round) {
-                console.assert(lastClientNr <= _this.getRoundNr());
-                console.assert(lastServerNr <= _this.getServerNr() || _this.getServerNr() == -1);
-                if (_this.incoming.length > 0) {
+        this.onConnectP = new Promise(function (resolve, reject) {
+            _this.channel.on("handshake", function (_a) {
+                var err = _a.err, lastClientNr = _a.lastClientNr, lastServerNr = _a.lastServerNr, round = _a.round;
+                if (err) {
+                    reject("failed to handshake");
+                    throw err;
+                }
+                _this.setupYieldPush(_this.channel);
+                debug("handshaking... clientNr: " + _this.getRoundNr() + " , server received clientNr: " + lastClientNr);
+                if (round) {
+                    console.assert(lastClientNr <= _this.getRoundNr());
+                    console.assert(lastServerNr <= _this.getServerNr() || _this.getServerNr() == -1);
+                    if (_this.incoming.length > 0) {
+                        _this.yield();
+                    }
+                    _this.incoming = [Round_1.Round.fromJSON(round, _this)];
                     _this.yield();
                 }
-                _this.incoming = [Round_1.Round.fromJSON(round, _this)];
-                _this.yield();
-            }
-            if (_this.pending.length > 0) {
-                console.assert(_this.pending[_this.pending.length - 1].getClientNr() > lastClientNr);
-                _this.pending.forEach(function (r) { return _this.channel.emit("YieldPull", r.toJSON()); });
-            }
-            d.resolve();
+                if (_this.pending.length > 0) {
+                    console.assert(_this.pending[_this.pending.length - 1].getClientNr() > lastClientNr);
+                    _this.pending.forEach(function (r) { return _this.channel.emit("YieldPull", r.toJSON()); });
+                }
+                resolve();
+            });
         });
+        return this.onConnectP;
     };
     RepliqClient.prototype.handleYieldPull = function (json) {
         debug("YieldPull: received round");

@@ -42,12 +42,13 @@ export class Operation {
         return (typeof this.targetId !== "undefined");
     }
 
-    getTargetId() {
+
+    getTargetId(): string {
         if (this.isMethodApplication()) {
             return this.targetId;
         }
         if (this.selector === Repliq.CREATE_SELECTOR) {
-            return this.args[0];
+            return <string>this.args[0];
         }
     }
 

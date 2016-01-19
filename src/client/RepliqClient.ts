@@ -34,46 +34,47 @@ export class RepliqClient extends RepliqManager {
 
     connect(host: string) {
         this.channel = io(host, {forceNew: true});
-        this.handshake();
-        return this.onConnectP;
+        return this.handshake();
     }
 
     setupYieldPush(channel: SocketIOClient.Socket) {
         channel.on("YieldPush", (round: RoundJSON) => this.handleYieldPull(round));
     }
 
-    handshake() {
+    handshake(): Promise<any> {
         this.channel.emit("handshake", <com.HandshakeClient>{clientId: this.getId(), clientNr: this.getRoundNr(), serverNr: this.serverNr});
-        let d = Promise.defer();
-        this.onConnectP = d.promise;
-        this.channel.on("handshake", ({err, lastClientNr, lastServerNr, round}: com.HandshakeServer) => {
-            if (err) {
-                // Requires complete reset of the data
-                throw err;
-            }
+        this.onConnectP = new Promise((resolve, reject) => {
+            this.channel.on("handshake", ({err, lastClientNr, lastServerNr, round}: com.HandshakeServer) => {
+                if (err) {
+                    // Requires complete reset of the data
+                    reject("failed to handshake");
+                    throw err;
+                }
 
-            this.setupYieldPush(this.channel);
+                this.setupYieldPush(this.channel);
 
-            debug("handshaking... clientNr: " + this.getRoundNr() + " , server received clientNr: " + lastClientNr);
+                debug("handshaking... clientNr: " + this.getRoundNr() + " , server received clientNr: " + lastClientNr);
 
-            if (round) {
-                console.assert(lastClientNr <= this.getRoundNr());
-                console.assert(lastServerNr <= this.getServerNr() || this.getServerNr() == -1);
+                if (round) {
+                    console.assert(lastClientNr <= this.getRoundNr());
+                    console.assert(lastServerNr <= this.getServerNr() || this.getServerNr() == -1);
 
-                if (this.incoming.length > 0) {
+                    if (this.incoming.length > 0) {
+                        this.yield();
+                    }
+                    this.incoming = [Round.fromJSON(round, this)];
                     this.yield();
                 }
-                this.incoming = [Round.fromJSON(round, this)];
-                this.yield();
-            }
 
-            if (this.pending.length > 0) {
-                console.assert(this.pending[this.pending.length - 1].getClientNr() > lastClientNr);
-                this.pending.forEach((r:Round) => this.channel.emit("YieldPull", r.toJSON()));
-            }
+                if (this.pending.length > 0) {
+                    console.assert(this.pending[this.pending.length - 1].getClientNr() > lastClientNr);
+                    this.pending.forEach((r:Round) => this.channel.emit("YieldPull", r.toJSON()));
+                }
 
-            d.resolve();
+                resolve();
+            });
         });
+        return this.onConnectP;
     }
 
     handleYieldPull(json: RoundJSON) {
