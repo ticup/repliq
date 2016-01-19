@@ -271,6 +271,6 @@ function computeHashString(str: string): number {
 
 function computeHash(obj: Object): number {
     //return obj.constructor.name;
-    let str = Object.keys(obj).reduce((acc, key) => (obj.hasOwnProperty(key) ? (acc + key + obj[key].toString()) : ""), "");
+    let str = Object.keys(obj).sort().reduce((acc, key) => (obj.hasOwnProperty(key) ? (acc + key + obj[key].toString()) : ""), "");
     return computeHashString(str);
 }

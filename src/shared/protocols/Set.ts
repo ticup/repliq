@@ -6,7 +6,7 @@
 import {Repliq, sync} from "../index";
 import {Map} from "immutable"
 
-export class Set<T> extends Repliq {
+export abstract class Set<T> extends Repliq {
     items = Map();
 
     @sync
@@ -27,6 +27,6 @@ export class Set<T> extends Repliq {
     }
 
     merge(item: T) {
-        throw new Error("Must be implemented by subclass");
+
     }
 }

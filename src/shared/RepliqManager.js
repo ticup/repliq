@@ -193,7 +193,7 @@ function computeHashString(str) {
     return hash;
 }
 function computeHash(obj) {
-    var str = Object.keys(obj).reduce(function (acc, key) { return (obj.hasOwnProperty(key) ? (acc + key + obj[key].toString()) : ""); }, "");
+    var str = Object.keys(obj).sort().reduce(function (acc, key) { return (obj.hasOwnProperty(key) ? (acc + key + obj[key].toString()) : ""); }, "");
     return computeHashString(str);
 }
 //# sourceMappingURL=RepliqManager.js.map

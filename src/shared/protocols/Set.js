@@ -33,7 +33,6 @@ var Set = (function (_super) {
         return this.get("items").get(key);
     };
     Set.prototype.merge = function (item) {
-        throw new Error("Must be implemented by subclass");
     };
     __decorate([
         index_1.sync
