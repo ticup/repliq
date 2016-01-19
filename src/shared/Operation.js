@@ -15,13 +15,29 @@ var Operation = (function () {
         };
     };
     Operation.prototype.getNewRepliqIds = function () {
-        if (this.selector === Repliq_1.Repliq.CREATE_SELECTOR) {
-            return [this.targetId].concat(Communication_2.getRepliqReferences(this.args));
+        if (this.isMethodApplication()) {
+            return Communication_2.getRepliqReferences(this.args);
         }
-        return Communication_2.getRepliqReferences(this.args);
+        else {
+            return [this.args[0]].concat(Communication_2.getRepliqReferences(this.args.slice(1)));
+        }
+    };
+    Operation.prototype.isMethodApplication = function () {
+        return (typeof this.targetId !== "undefined");
+    };
+    Operation.prototype.getTargetId = function () {
+        if (this.isMethodApplication()) {
+            return this.targetId;
+        }
+        if (this.selector === Repliq_1.Repliq.CREATE_SELECTOR) {
+            return this.args[0];
+        }
     };
     Operation.fromJSON = function (json, manager) {
         return new Operation(json.targetId, json.selector, json.args.map(function (arg) { return Communication_1.fromJSON(arg, manager); }));
+    };
+    Operation.global = function (selector, args) {
+        return new Operation(undefined, selector, args);
     };
     Operation.prototype.toString = function () {
         return "" + this.targetId.slice(-5) + "." + this.selector + "(" + this.args.map(function (arg) { return arg.toString(); }).join(", ") + ")";

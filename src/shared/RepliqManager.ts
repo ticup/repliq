@@ -92,7 +92,7 @@ export class RepliqManager {
         // we have to put on replaying to not record what's in the constructor.
         let wasReplaying = this.replaying;
         this.replaying = true;
-        let data = new RepliqData(template.fields);
+        let data = new RepliqData();
         let repl = new template(template, data, this, this.id);
         this.replaying = wasReplaying;
         this.repliqs[repl.getId()] = repl;
@@ -101,7 +101,8 @@ export class RepliqManager {
             repl.set(key, args[key]);
         });
         data.commitValues();
-        this.current.add(new Operation(repl.getId(), Repliq.CREATE_SELECTOR, (<Array<any>>[template]).concat(args)));
+        if (!this.replaying)
+            this.current.add(Operation.global(Repliq.CREATE_SELECTOR, (<Array<any>>[repl.getId(), template]).concat(args)));
         return repl;
     }
 
@@ -111,7 +112,7 @@ export class RepliqManager {
         }
         let wasReplaying = this.replaying;
         this.replaying = true;
-        let data = new RepliqData(template.fields);
+        let data = new RepliqData();
         let repl = new template(template, data, this, this.id, id);
         this.replaying = wasReplaying;
         this.repliqs[repl.getId()] = repl;
@@ -135,7 +136,7 @@ export class RepliqManager {
         return this.repliqsData[id];
     }
 
-        getRoundNr() {
+    getRoundNr() {
         return this.roundNr;
     }
 
@@ -178,7 +179,7 @@ export class RepliqManager {
     execute(selector: string, id: string, args) {
         if (selector === Repliq.CREATE_SELECTOR) {
             var template = args[0];
-            debug("creating repliq with id " + id + "(" + args.slice(1) + " )");
+            debug("creating repliq with id " + id + "(" + args[1] + " )");
             this.add(template, args[1], id);
         }
         else {
@@ -189,30 +190,38 @@ export class RepliqManager {
     protected replay(rounds: Round[]): Repliq[] {
         this.replaying = true;
 
-        let affected = rounds.reduce((acc, round: Round) =>
-            acc.concat(this.play(round)), []);
+        rounds.forEach((r: Round) => this.play(r));
 
-        this.forEachData((_, r: RepliqData) =>
-            r.commitValues());
+        this.commitValues();
+
+        let affected = this.getAffectedIds(rounds);
 
         this.replaying = false;
-        return affected;
+        return affected.map((id) => this.getRepliq(id));
     }
 
-    protected play(round: Round): Repliq[] {
+    protected play(round: Round) {
         debug("playing round o:" + round.getClientNr() + " s: " + round.getServerNr());
-        let affected = [];
         round.operations.forEach((op: Operation) => {
             debug(op.targetId + " . " + op.selector);
-            if (op.selector === Repliq.CREATE_SELECTOR) {
-                this.execute(op.selector, op.targetId, op.args)
+            if (!op.isMethodApplication()) {
+                this.execute(op.selector, <string>op.args[0], op.args.slice(1));
             } else {
                 let rep = this.getRepliq(op.targetId);
                 rep[op.selector].apply(rep, op.args);
-                affected.push(rep);
             }
         });
-        return affected;
+    }
+
+    protected commitValues() {
+        this.forEachData((_, r: RepliqData) =>
+            r.commitValues());
+    }
+
+    protected getAffectedIds(rounds: Round[]): string[] {
+        return rounds.reduce((acc, round: Round) =>
+            acc.concat(round.operations.reduce((acc, op: Operation) =>
+                op.isMethodApplication() ? acc.concat(op.targetId) : acc, [])), []);
     }
 
 

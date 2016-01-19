@@ -48,7 +48,7 @@ var RepliqManager = (function () {
         }
         var wasReplaying = this.replaying;
         this.replaying = true;
-        var data = new RepliqData_1.RepliqData(template.fields);
+        var data = new RepliqData_1.RepliqData();
         var repl = new template(template, data, this, this.id);
         this.replaying = wasReplaying;
         this.repliqs[repl.getId()] = repl;
@@ -57,7 +57,8 @@ var RepliqManager = (function () {
             repl.set(key, args[key]);
         });
         data.commitValues();
-        this.current.add(new Operation_1.Operation(repl.getId(), Repliq_1.Repliq.CREATE_SELECTOR, [template].concat(args)));
+        if (!this.replaying)
+            this.current.add(Operation_1.Operation.global(Repliq_1.Repliq.CREATE_SELECTOR, [repl.getId(), template].concat(args)));
         return repl;
     };
     RepliqManager.prototype.add = function (template, args, id) {
@@ -66,7 +67,7 @@ var RepliqManager = (function () {
         }
         var wasReplaying = this.replaying;
         this.replaying = true;
-        var data = new RepliqData_1.RepliqData(template.fields);
+        var data = new RepliqData_1.RepliqData();
         var repl = new template(template, data, this, this.id, id);
         this.replaying = wasReplaying;
         this.repliqs[repl.getId()] = repl;
@@ -115,7 +116,7 @@ var RepliqManager = (function () {
     RepliqManager.prototype.execute = function (selector, id, args) {
         if (selector === Repliq_1.Repliq.CREATE_SELECTOR) {
             var template = args[0];
-            debug("creating repliq with id " + id + "(" + args.slice(1) + " )");
+            debug("creating repliq with id " + id + "(" + args[1] + " )");
             this.add(template, args[1], id);
         }
         else {
@@ -125,31 +126,37 @@ var RepliqManager = (function () {
     RepliqManager.prototype.replay = function (rounds) {
         var _this = this;
         this.replaying = true;
-        var affected = rounds.reduce(function (acc, round) {
-            return acc.concat(_this.play(round));
-        }, []);
-        this.forEachData(function (_, r) {
-            return r.commitValues();
-        });
+        rounds.forEach(function (r) { return _this.play(r); });
+        this.commitValues();
+        var affected = this.getAffectedIds(rounds);
         this.replaying = false;
-        return affected;
+        return affected.map(function (id) { return _this.getRepliq(id); });
     };
     RepliqManager.prototype.play = function (round) {
         var _this = this;
         debug("playing round o:" + round.getClientNr() + " s: " + round.getServerNr());
-        var affected = [];
         round.operations.forEach(function (op) {
             debug(op.targetId + " . " + op.selector);
-            if (op.selector === Repliq_1.Repliq.CREATE_SELECTOR) {
-                _this.execute(op.selector, op.targetId, op.args);
+            if (!op.isMethodApplication()) {
+                _this.execute(op.selector, op.args[0], op.args.slice(1));
             }
             else {
                 var rep = _this.getRepliq(op.targetId);
                 rep[op.selector].apply(rep, op.args);
-                affected.push(rep);
             }
         });
-        return affected;
+    };
+    RepliqManager.prototype.commitValues = function () {
+        this.forEachData(function (_, r) {
+            return r.commitValues();
+        });
+    };
+    RepliqManager.prototype.getAffectedIds = function (rounds) {
+        return rounds.reduce(function (acc, round) {
+            return acc.concat(round.operations.reduce(function (acc, op) {
+                return op.isMethodApplication() ? acc.concat(op.targetId) : acc;
+            }, []));
+        }, []);
     };
     RepliqManager.prototype.newRound = function () {
         return new Round_1.Round(this.newRoundNr(), this.getId());

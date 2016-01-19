@@ -6,4 +6,6 @@ exports.Repliq = Repliq_1.Repliq;
 exports.sync = Repliq_1.sync;
 var Register_1 = require("./protocols/Register");
 exports.Register = Register_1.Register;
+var Set_1 = require("./protocols/Set");
+exports.Set = Set_1.Set;
 //# sourceMappingURL=index.js.map

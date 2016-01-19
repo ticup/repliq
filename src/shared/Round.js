@@ -49,7 +49,7 @@ var Round = (function () {
         };
     };
     Round.prototype.copyFor = function (clientNr, repliqIds) {
-        var ops = this.operations.filter(function (op) { return repliqIds.indexOf(op.targetId) !== -1; });
+        var ops = this.operations.filter(function (op) { return repliqIds.indexOf(op.getTargetId()) !== -1; });
         return new Round(clientNr, this.originId, this.serverNr, ops);
     };
     Round.fromJSON = function (json, manager) {

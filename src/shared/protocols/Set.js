@@ -9,32 +9,36 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-var index_1 = require("../../../src/shared/index");
-var Status = (function (_super) {
-    __extends(Status, _super);
-    function Status() {
+var index_1 = require("../index");
+var immutable_1 = require("immutable");
+var Set = (function (_super) {
+    __extends(Set, _super);
+    function Set() {
         _super.apply(this, arguments);
-        this.value = "offline";
+        this.items = immutable_1.Map();
     }
-    Status.prototype.turnOn = function () {
-        this.setVal("on");
+    Set.prototype.add = function (item) {
+        var exists;
+        var items = this.get('items');
+        var key = item.get(this.get("keyName"));
+        var existing = items.get(key);
+        if (existing) {
+            this.set("items", items.set(key, existing.merge(item)));
+        }
+        else {
+            this.set("items", items.set(key, item));
+        }
     };
-    Status.prototype.turnOff = function () {
-        this.setVal("off");
+    Set.prototype.getItem = function (key) {
+        return this.get("items").get(key);
     };
-    Status.prototype.isOn = function () {
-        return this.getVal() === "on";
-    };
-    Status.prototype.isOff = function () {
-        return this.getVal() === "off";
+    Set.prototype.merge = function (item) {
+        throw new Error("Must be implemented by subclass");
     };
     __decorate([
         index_1.sync
-    ], Status.prototype, "turnOn", null);
-    __decorate([
-        index_1.sync
-    ], Status.prototype, "turnOff", null);
-    return Status;
-})(index_1.Register);
-exports.Status = Status;
-//# sourceMappingURL=Schema.js.map
+    ], Set.prototype, "add", null);
+    return Set;
+})(index_1.Repliq);
+exports.Set = Set;
+//# sourceMappingURL=Set.js.map

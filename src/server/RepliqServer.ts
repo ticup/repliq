@@ -224,7 +224,7 @@ export class RepliqServer extends RepliqManager {
             return true;
         }
 
-        let ops = round.operations.filter((op: Operation) => !!client.repliqIds[op.targetId]);
+        let ops = round.operations.filter((op: Operation) => !!client.repliqIds[op.getTargetId()]);
         return ops.length > 0;
     }
 

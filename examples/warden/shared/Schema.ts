@@ -3,9 +3,7 @@
 import {Repliq, sync, Register} from "../../../src/shared/index";
 
 export class Status extends Register {
-    static fields = {
-        value: "offline"
-    };
+    value = "offline";
 
     @sync
     turnOn() {

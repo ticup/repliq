@@ -150,7 +150,7 @@ var RepliqServer = (function (_super) {
         if (round.containsOrigin(id)) {
             return true;
         }
-        var ops = round.operations.filter(function (op) { return !!client.repliqIds[op.targetId]; });
+        var ops = round.operations.filter(function (op) { return !!client.repliqIds[op.getTargetId()]; });
         return ops.length > 0;
     };
     RepliqServer.prototype.extendReferences = function (id, round) {

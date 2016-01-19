@@ -80,7 +80,7 @@ export class Round {
     }
 
     copyFor(clientNr: number, repliqIds: string[]) {
-        let ops = this.operations.filter((op: Operation) => repliqIds.indexOf(op.targetId) !== -1);
+        let ops = this.operations.filter((op: Operation) => repliqIds.indexOf(op.getTargetId()) !== -1);
         return new Round(clientNr, this.originId, this.serverNr, ops);
     }
 
