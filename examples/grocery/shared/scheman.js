@@ -1,8 +1,8 @@
 ///<reference path="../../../src/shared/references.d.ts"/>
 import {List, Set, Repliq, sync} from "../../../src/shared/index";
 
-export class GroceryList extends Set {
-    keyName = "name";
+let GroceryList = Repliq.define({
+    keyName: "name",
 
     getGrocery(name: string) {
         var exists = this.get(name);
@@ -14,7 +14,7 @@ export class GroceryList extends Set {
         return grocery;
     }
 
-}
+});
 
 export class Grocery extends Repliq {
     name = "unnamed";
@@ -26,5 +26,6 @@ export class Grocery extends Repliq {
 
     merge(item) {
         this.add(item.get("count"));
+        item.become(this);
     }
 }

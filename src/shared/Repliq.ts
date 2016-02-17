@@ -54,6 +54,22 @@ export class Repliq extends EventEmitter {
         this.manager.create(this, args);
     }
 
+    static extend(props = {}) {
+        function F() {
+            Object.keys(props).forEach((name) => {
+                if (props.hasOwnProperty(name)) {
+                    let val = props[name];
+                    if (typeof val === "function") {
+                        // TODO: Parse val.toString()
+                    } else {
+
+                    }
+                }
+            })
+        }
+        return F;
+    }
+
 
 
 
