@@ -93,6 +93,6 @@ export class Round {
     }
 
     toString() {
-        return "{Round#s:" + this.getServerNr() + "o:" + this.getClientNr() + " | [" + this.operations.map((op) => op.toString()).join(", "); + "]}";
+        return "{Round#s:" + this.getServerNr() + "o:" + this.getClientNr() + " | [" + this.operations.map((op) => op.toString()).join(", ") + "]}";
     }
 }

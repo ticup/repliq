@@ -197,11 +197,13 @@ export class RepliqServer extends RepliqManager {
             affectedExt.forEach((rep: Repliq) => { rep.emit(Repliq.CHANGE_EXTERNAL); rep.emit(Repliq.CHANGE) });
         }
         this.yielding = false;
+
+        super.yield();
+
         if (this.requiresYield) {
             this.requiresYield = false;
             this.yield();
         }
-
     }
 
     broadcastRound(round: Round) {

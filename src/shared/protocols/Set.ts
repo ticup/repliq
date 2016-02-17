@@ -22,11 +22,14 @@ export abstract class Set<T> extends Repliq {
         }
     }
 
+    @sync
+    remove(item) {
+        this.set('items', this.get('items').remove(item.get(this.get("keyName"))));
+    }
+
     getItem(key: string) {
         return this.get("items").get(key);
     }
 
-    merge(item: T) {
-
-    }
+    abstract merge(item: T): void;
 }

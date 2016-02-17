@@ -1,0 +1,6 @@
+body {
+    padding: 1em;
+}
+.ui.input + .ui.input {
+    margin-left: 1em;
+}

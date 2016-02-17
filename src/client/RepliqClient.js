@@ -117,6 +117,7 @@ var RepliqClient = (function (_super) {
             this.replaying = false;
             affectedExt.forEach(function (rep) { rep.emit(Repliq_1.Repliq.CHANGE_EXTERNAL); rep.emit(Repliq_1.Repliq.CHANGE); });
         }
+        _super.prototype.yield.call(this);
     };
     RepliqClient.prototype.getServerNr = function () {
         return this.serverNr;

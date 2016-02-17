@@ -43,6 +43,28 @@ var Repliq = (function (_super) {
         })(this);
         return new Stub(this, data);
     };
+    Repliq.create = function (args) {
+        if (args === void 0) { args = {}; }
+        if (typeof this.manager === "undefined") {
+            throw new Error("Repliq must first be declared to a manager");
+        }
+        this.manager.create(this, args);
+    };
+    Repliq.extend = function (props) {
+        if (props === void 0) { props = {}; }
+        function F() {
+            Object.keys(props).forEach(function (name) {
+                if (props.hasOwnProperty(name)) {
+                    var val = props[name];
+                    if (typeof val === "function") {
+                    }
+                    else {
+                    }
+                }
+            });
+        }
+        return F;
+    };
     Repliq.prototype.getMethod = function (op) {
         return this[op];
     };

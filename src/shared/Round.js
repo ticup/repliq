@@ -56,8 +56,7 @@ var Round = (function () {
         return new Round(json.clientNr, json.originId, json.serverNr, json.operations.map(function (op) { return Operation_1.Operation.fromJSON(op, manager); }));
     };
     Round.prototype.toString = function () {
-        return "{Round#s:" + this.getServerNr() + "o:" + this.getClientNr() + " | [" + this.operations.map(function (op) { return op.toString(); }).join(", ");
-        +"]}";
+        return "{Round#s:" + this.getServerNr() + "o:" + this.getClientNr() + " | [" + this.operations.map(function (op) { return op.toString(); }).join(", ") + "]}";
     };
     return Round;
 })();

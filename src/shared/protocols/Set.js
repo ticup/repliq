@@ -29,14 +29,18 @@ var Set = (function (_super) {
             this.set("items", items.set(key, item));
         }
     };
+    Set.prototype.remove = function (item) {
+        this.set('items', this.get('items').remove(item.get(this.get("keyName"))));
+    };
     Set.prototype.getItem = function (key) {
         return this.get("items").get(key);
-    };
-    Set.prototype.merge = function (item) {
     };
     __decorate([
         index_1.sync
     ], Set.prototype, "add", null);
+    __decorate([
+        index_1.sync
+    ], Set.prototype, "remove", null);
     return Set;
 })(index_1.Repliq);
 exports.Set = Set;
