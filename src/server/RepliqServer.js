@@ -127,6 +127,7 @@ var RepliqServer = (function (_super) {
             affectedExt.forEach(function (rep) { rep.emit(Repliq_1.Repliq.CHANGE_EXTERNAL); rep.emit(Repliq_1.Repliq.CHANGE); });
         }
         this.yielding = false;
+        _super.prototype.yield.call(this);
         if (this.requiresYield) {
             this.requiresYield = false;
             this.yield();

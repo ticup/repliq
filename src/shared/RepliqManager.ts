@@ -10,6 +10,7 @@ import {RepliqData} from "./RepliqData";
 import {ClientId} from "./Types";
 import {toJSON} from "./Communication";
 import * as util from "util";
+import {EventEmitter} from "events";
 
 let debug = Debug("Repliq:local");
 
@@ -21,7 +22,7 @@ export interface RepliqTemplateMap {
     [id: number] : typeof Repliq;
 }
 
-export class RepliqManager {
+export class RepliqManager extends EventEmitter {
     private id : ClientId;
     private templates;
     private repliqs;
@@ -46,6 +47,7 @@ export class RepliqManager {
 
 
     constructor(schema?: RepliqTemplateMap, yieldEvery?: number) {
+        super();
         this.id = guid.v4();
         this.roundNr = -1;
         this.templates = {};
@@ -76,6 +78,7 @@ export class RepliqManager {
         template.id = computeHash(template.prototype);
         this.templates[template.getId()] = template;
         this.templateIds[template.getId()] = 0;
+        template.manager = this;
         debug("declaring template with id " + template.id);
     }
 
@@ -252,7 +255,9 @@ export class RepliqManager {
         }
     }
 
-    yield() { throw Error("should be implemented by client/server"); }
+    yield() {
+        this.emit("yield");
+    }
 
 
 }

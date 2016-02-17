@@ -1,12 +1,20 @@
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
 var Repliq_1 = require("./Repliq");
 var Operation_1 = require("./Operation");
 var Round_1 = require("./Round");
 var Debug = require("debug");
 var guid = require("node-uuid");
 var RepliqData_1 = require("./RepliqData");
+var events_1 = require("events");
 var debug = Debug("Repliq:local");
-var RepliqManager = (function () {
+var RepliqManager = (function (_super) {
+    __extends(RepliqManager, _super);
     function RepliqManager(schema, yieldEvery) {
+        _super.call(this);
         this.id = guid.v4();
         this.roundNr = -1;
         this.templates = {};
@@ -35,6 +43,7 @@ var RepliqManager = (function () {
         template.id = computeHash(template.prototype);
         this.templates[template.getId()] = template;
         this.templateIds[template.getId()] = 0;
+        template.manager = this;
         debug("declaring template with id " + template.id);
     };
     RepliqManager.prototype.declareAll = function (templates) {
@@ -177,9 +186,11 @@ var RepliqManager = (function () {
             clearInterval(this.yieldTimer);
         }
     };
-    RepliqManager.prototype.yield = function () { throw Error("should be implemented by client/server"); };
+    RepliqManager.prototype.yield = function () {
+        this.emit("yield");
+    };
     return RepliqManager;
-})();
+})(events_1.EventEmitter);
 exports.RepliqManager = RepliqManager;
 function computeHashString(str) {
     var hash = 0, i, chr, len;

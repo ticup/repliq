@@ -16,6 +16,8 @@ export class Repliq extends EventEmitter {
 
     static isRepliq : boolean = true;
 
+    public static manager: RepliqManager;
+
     static fields = {
 
     };
@@ -43,6 +45,13 @@ export class Repliq extends EventEmitter {
         }
 
         return new Stub(this, data);
+    }
+
+    static create(args = {}) {
+        if (typeof this.manager === "undefined") {
+            throw new Error("Repliq must first be declared to a manager");
+        }
+        this.manager.create(this, args);
     }
 
 

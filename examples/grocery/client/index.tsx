@@ -9,18 +9,31 @@ import * as ReactDOM from "react-dom";
 import {RepliqClient, Repliq} from "../../../src/client/index";
 import {Grocery, GroceryList} from "../shared/schema";
 
-let client = new RepliqClient("localhost:3000", {Grocery, GroceryList});
+let client = new RepliqClient(null, {Grocery, GroceryList}, 1000);
 
 
-class MainComponent extends React.Component<{groceries: Repliq, client: RepliqClient}, {}> {
+class MainComponent extends React.Component<{groceries: GroceryList}, {}> {
+
+    state = {groceries: null};
+
+    componentDidMount() {
+        client.send("groceries").then( groceries => {
+            this.setState({groceries});
+        });
+    }
+
     render() {
-        return (
-            <div className="container">
-                <GroceryListComponent groceries={this.props.groceries}/>
-                <NewGroceryComponent addGrocery={(name, count)=> {
-                    this.props.groceries.call("add", client.create(Grocery, { name, count })); }} />
-            </div>
-        );
+        if (this.state.groceries) {
+            return (
+                <div className="container">
+                    <GroceryListComponent groceries={this.props.groceries}/>
+                    <NewGroceryComponent addGrocery={(name, count)=> {
+                        this.props.groceries.call("add", client.create(Grocery, { name, count })); }} />;
+                </div>
+            );
+        }
+        return <LoadingComponent />;
+
     }
 }
 
@@ -79,6 +92,15 @@ class NewGroceryComponent extends React.Component<{addGrocery(name:string, count
     }
 }
 
+class LoadingComponent extends React.Component<{}, {}> {
+    render() {
+        <div class="container"> Loading ... </div>
+    }
+}
+
+
 client.send("getGroceries").then((groceries: Repliq) => {
-    ReactDOM.render(<MainComponent groceries={groceries}/>, document.getElementById("main"));
+    let comp = <MainComponent groceries={groceries}/>;
+    ReactDOM.render(comp, document.getElementById("main"));
+    grocery.onChange(() => comp.forceUpdate());
 });

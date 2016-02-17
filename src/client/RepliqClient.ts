@@ -84,6 +84,7 @@ export class RepliqClient extends RepliqManager {
         //this.notifyChanged();
     }
 
+    // Should only be called after connect() and handshake() is called!
     onConnect() {
         return this.onConnectP;
     }
@@ -157,7 +158,8 @@ export class RepliqClient extends RepliqManager {
             this.replaying = false;
             affectedExt.forEach((rep: Repliq) => { rep.emit(Repliq.CHANGE_EXTERNAL); rep.emit(Repliq.CHANGE)});
         }
-
+        
+        super.yield();
     }
 
 
