@@ -1,30 +1,34 @@
 ///<reference path="../../../src/shared/references.d.ts"/>
-import {List, Set, Repliq, sync} from "../../../src/shared/index";
+import {List, Set, Repliq} from "../../../src/shared/index";
 
-export class GroceryList extends Set {
-    keyName = "name";
+let GroceryList = HashMap.extend({
+    keyName: String,
 
     getGrocery(name: string) {
-        var exists = this.get(name);
-        if (exists)
+        let exists = this.get(name);
+        if (exists) {
             return exists;
-
+        }
         let grocery = Grocery.create({name});
-        this.add(grocery);
+        this.put(grocery);
         return grocery;
     }
+});
 
-}
+let Grocery = Repliq.extend({
+    name : String,
+    count: number,
 
-export class Grocery extends Repliq {
-    name = "unnamed";
-    count = 0;
+    constructor(name) {
+        this.name = name;
+        this.count = 0;
+    },
 
     add(delta) {
-        this.set("count", this.get("count") + delta);
-    }
+        this.count = this.count + delta;
+    },
 
     merge(item) {
-        this.add(item.get("count"));
+        this.add(item.count);
     }
-}
+});

@@ -1,24 +1,148 @@
 {
-    var Type = require("./Type.js");
-}
+	  var Type = require("../../shared/Types.js").Tokens;
+
+	  function extractOptional(optional, index) {
+        return optional ? optional[index] : null;
+      }
+
+      function extract(list, index) {
+        var result = new Array(list.length), i;
+
+        for (i = 0; i < list.length; i++) {
+          result[i] = list[i][index];
+        }
+
+        return result;
+      }
+
+      function buildList(first, rest, index) {
+        return [first].concat(extract(rest, index));
+      }
+
+      function optList(value) {
+				return value !== null ? [value] : [];
+			}
+
+      function buildTree(first, rest, builder) {
+        var result = first, i;
+
+        for (i = 0; i < rest.length; i++) {
+          result = builder(result, rest[i]);
+        }
+
+        return result;
+      }
+	}
+
 
 Start
-    = Function
+    = RootProgram
 
-Function
-    = name:FunctionName __ "(" __ params:ParameterList? __ ")" __ "{" __ body:FunctionBody __ "}"
+
+RootProgram
+    = imports:ImportStatements __ declarations:PrototypeDeclarations
+    {
+        return {
+            type: Type.Program,
+            imports: imports,
+            declarations: declarations
+        };
+    }
+
+
+/* Import Statements */
+///////////////////////
+
+ImportStatements
+    = first:ImportStatement elements:((WhiteSpace)* StatementSeparator __ ImportStatement)*
+    {
+        return [first].concat(extract(elements,3));
+    }
+    / __
+     {
+        return [];
+     }
+
+ImportStatement
+    = ImportToken __ "{" __ ids: ParameterList? __ "}" __ FromToken __ path:StringLiteral
+    {
+        return {
+            type: Type.ImportStatement,
+            names: ids,
+            path: path.value
+        };
+    }
+
+
+
+/* Declarations */
+//////////////////
+
+PrototypeDeclarations
+    = first:PrototypeDeclaration elements:((WhiteSpace)* StatementSeparator __ PrototypeDeclaration)*
+    {
+        return [first].concat(extract(elements,3));
+    }
+    / __
+     {
+        return [];
+     }
+
+PrototypeDeclaration
+    = LetToken __ name: IdentifierName __ "=" __ IdentifierName ".extend({" __ fields:FieldDeclarations __ methods:MethodDeclarations __ "})"
+    {
+        return {
+            type: Type.PrototypeDeclaration,
+            name: name,
+            body: body
+
+        };
+    }
+
+FieldDeclarations
+    = first:FieldDeclaration rest:(__ "," __ FieldDeclaration)*
+    {
+        return [first].concat(extract(rest,3));
+    }
+    / __
+     {
+        return [];
+     }
+
+FieldDeclaration
+    = name:IdentifierName __ ":" __ type:IdentifierName
+    {
+        return {
+            type: Type.FieldDeclaration,
+            name: name,
+            value: type
+        };
+    }
+
+MethodDeclarations
+    = first:MethodDeclaration rest:(__ "," __ MethodDeclaration)*
+     {
+         return [first].concat(extract(rest,3));
+     }
+     / __
+      {
+         return [];
+      }
+
+MethodDeclaration
+    = name:MethodName __ "(" __ params:ParameterList? __ ")" __ "{" __ body:MethodBody __ "}"
 		{
 		  return {
-			type: Type.FunctionDeclaration,
+			type: Type.MethodDeclaration,
 			params: params !== null ? params : [],
 			body: body
 		  };
 		}
 
-FunctionName
+MethodName
     = IdentifierName
 
-ParameterList "function parameter list"
+ParameterList "Method parameter list"
     = first:Parameter rest:(__ "," __ Parameter)*
     {
       var params = [first];
@@ -40,7 +164,7 @@ Parameter
     = IdentifierName
 
 
-FunctionBody
+MethodBody
     = BlockStatement
 
 
@@ -50,31 +174,57 @@ BlockStatement
     {
         return [first].concat(extract(elements,3));
     }
+    / __
+     {
+        return [];
+     }
 
 
 Statement
     = LetStatement
+    / IfStatement
+    / FieldAssignment
     / Expression
+
 
 StatementSeparator
     = __ ";" / LineTerminatorSequence
 
 LetStatement
-    = LetToken __ name:Identifier __ "=" __ value:Expression
+    = LetToken __ name:IdentifierName __ "=" __ value:Expression
     {
         return {
-            type: Type.Let,
+            type: Type.LetStatement,
             name: name,
             value: value
         };
     }
 
-// Expression
-//////////////
+
+/* If Statement */
+//////////////////
+
+IfStatement
+  = IfToken __ "(" __ test:Expression __ ")" __ "{" __ consequence:BlockStatement __ "}" __ alternative:ElseExpression?
+    {
+      return {
+        type: Type.IfStatement,
+        test: test,
+        consequence: consequence,
+        alternative: alternative
+      };
+    }
+
+ElseExpression
+  = "else" __ "{" __ alternative:BlockStatement __ "}" { return alternative; }
+
+/* Expression */
+////////////////
 
 Expression
-    = ParenthesisExpression
-    / Operation
+    = Operation
+    / ParenthesisExpression
+    / FieldAccess
     / Identifier
     / Literal
 
@@ -85,6 +235,10 @@ ParenthesisExpression
       	return exp;
       }
 
+
+
+// Operation
+/////////////
 
 Operation
       = first:UnaryExpression __ op:Operator __ second:OperationExpression
@@ -103,6 +257,7 @@ OperationExpression
 
 UnaryExpression
     = ParenthesisExpression
+    / FieldAccess
     / Identifier
     / Literal
 
@@ -110,21 +265,54 @@ Operator "operator"
 	    = BinaryOperator
 
 
-	BinaryOperator "binary operator"
-	    = "++" { return Type.PlusPlus }
-	    / "+" { return Type.Plus }
-	    / "-" { return Type.Minus }
-	    / "*" { return Type.Multiply }
-	    / "/" { return Type.Division }
-	    / "<=" { return Type.SmallerThanOrEqual }
-		/ ">=" { return Type.GreaterThanOrEqual }
-	    / ">" { return Type.GreaterThan }
-	    / "<" { return Type.SmallerThan }
-	    / "==" { return Type.EqualEqual }
-	    / "!=" { return Type.NotEqual }
+BinaryOperator "binary operator"
+    = "++" { return Type.PlusPlus }
+    / "+" { return Type.Plus }
+    / "-" { return Type.Minus }
+    / "*" { return Type.Multiply }
+    / "/" { return Type.Division }
+    / "<=" { return Type.SmallerThanOrEqual }
+    / ">=" { return Type.GreaterThanOrEqual }
+    / ">" { return Type.GreaterThan }
+    / "<" { return Type.SmallerThan }
+    / "==" { return Type.EqualEqual }
+    / "!=" { return Type.NotEqual }
 
 
 
+
+/* Field Access */
+/////////////////////
+
+FieldAccess
+    = ThisToken "." name:IdentifierName
+    {
+        return {
+            type: Type.FieldAccess,
+            field: name
+        };
+    }
+
+
+
+/* Field Assignment */
+/////////////////////
+
+FieldAssignment
+    = ThisToken "." name:IdentifierName __ "=" __ value:Expression
+    {
+        return {
+            type: Type.FieldAssignment,
+            field: name,
+            value: value
+        };
+    }
+
+
+
+
+/* Literal */
+/////////////
 
 Literal "literal"
 	    =  NumericLiteral
@@ -136,6 +324,7 @@ Literal "literal"
 
 
  /* Identifier */
+ ////////////////
 
 	Identifier "identifier"
     = !Keyword name:IdentifierName
@@ -192,11 +381,17 @@ Literal "literal"
   NumericLiteral "number"
       = "-" num:DecimalDigit+
       {
-        return (- parseInt(num.join(""), 10));
+        return {
+            type: Type.NumericLiteral,
+            value: (- parseInt(num.join(""), 10))
+        };
       }
       / num:DecimalDigit+
 	 {
-	   return parseInt(num.join(""), 10);
+	   return {
+	        type: Type.NumericLiteral,
+	        value: parseInt(num.join(""), 10)
+	   };
 	 }
 
   DecimalDigit
@@ -211,10 +406,18 @@ Literal "literal"
 
   BooleanLiteral
   	  = TrueToken
-  	  { return true; }
+  	  { return {
+  	        type: Type.BooleanLiteral,
+  	        value: true
+        };
+  	  }
 
   	  / FalseToken
-  	  { return false; }
+  	  { return {
+           type: Type.BooleanLiteral,
+           value: false
+         };
+     }
 
 
 
@@ -222,19 +425,74 @@ Literal "literal"
 
 
 /* StringLiteral */
+///////////////////
 
 StringLiteral "string"
-  = '"' chars:[a-zA-Z0-9_$]* '"'
-  {
-    return {
-        type: Type.StringLiteral,
-        value: chars.join("")
+  = '"' chars:DoubleStringCharacter* '"' {
+      return { type: Type.StringLiteral, value: chars.join("") };
     }
-  }
+  / "'" chars:SingleStringCharacter* "'" {
+      return { type: Type.StringLiteral, value: chars.join("") };
+    }
+
+DoubleStringCharacter
+  = !('"' / "\\" / LineTerminator) SourceCharacter { return text(); }
+  / "\\" sequence:EscapeSequence { return sequence; }
+  / LineContinuation
+
+SingleStringCharacter
+  = !("'" / "\\" / LineTerminator) SourceCharacter { return text(); }
+  / "\\" sequence:EscapeSequence { return sequence; }
+  / LineContinuation
+
+LineContinuation
+  = "\\" LineTerminatorSequence { return ""; }
+
+EscapeSequence
+  = CharacterEscapeSequence
+  / "0" !DecimalDigit { return "\0"; }
+  / HexEscapeSequence
+  / UnicodeEscapeSequence
+
+CharacterEscapeSequence
+  = SingleEscapeCharacter
+  / NonEscapeCharacter
+
+SingleEscapeCharacter
+  = "'"
+  / '"'
+  / "\\"
+  / "b"  { return "\b";   }
+  / "f"  { return "\f";   }
+  / "n"  { return "\n";   }
+  / "r"  { return "\r";   }
+  / "t"  { return "\t";   }
+  / "v"  { return "\x0B"; }   // IE does not recognize "\v".
+
+NonEscapeCharacter
+  = !(EscapeCharacter / LineTerminator) SourceCharacter { return text(); }
+
+EscapeCharacter
+  = SingleEscapeCharacter
+  / DecimalDigit
+  / "x"
+  / "u"
+
+HexEscapeSequence
+  = "x" digits:$(HexDigit HexDigit) {
+      return String.fromCharCode(parseInt(digits, 16));
+    }
+
+UnicodeEscapeSequence
+  = "u" digits:$(HexDigit HexDigit HexDigit HexDigit) {
+      return String.fromCharCode(parseInt(digits, 16));
+    }
+
 
 
 
 /* Keyword */
+/////////////
 
   Keyword
 	= TrueToken
@@ -266,6 +524,7 @@ StringLiteral "string"
 	FalseToken      = "false"      !IdentifierPart
 	FinallyToken    = "finally"    !IdentifierPart
 	ForToken        = "for"        !IdentifierPart
+	FromToken       = "from"       !IdentifierPart
 	FunctionToken   = "function"   !IdentifierPart / "fun" !IdentifierPart
 	GetToken        = "get"        !IdentifierPart
 	IfToken         = "if"         !IdentifierPart

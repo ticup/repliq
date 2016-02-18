@@ -27,7 +27,8 @@
   "scripts": {
     "compile": "tsc --module commonjs --outFile built/main.js src/index.ts",
     "compile-watch": "tsc --module commonjs --outFile built/main.js -w",
-    "compile-example": "node scripts/compile-example.js"
+    "compile-example": "node scripts/compile-example.js",
+    "parser": "node_modules/.bin/pegjs --allowed-start-rules Start,MethodDeclaration src/server/analyser/parser.pegjs"
   },
   "keywords": [
     "Realtime",
