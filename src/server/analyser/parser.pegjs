@@ -89,18 +89,18 @@ PrototypeDeclarations
      }
 
 PrototypeDeclaration
-    = LetToken __ name: IdentifierName __ "=" __ IdentifierName ".extend({" __ fields:FieldDeclarations __ methods:MethodDeclarations __ "})"
+    = LetToken __ name:IdentifierName __ "=" __ supr:IdentifierName ".extend({" __ properties:PropertyDeclarations __ "})"
     {
         return {
             type: Type.PrototypeDeclaration,
             name: name,
-            body: body
-
+            super: supr,
+            properties: properties
         };
     }
 
-FieldDeclarations
-    = first:FieldDeclaration rest:(__ "," __ FieldDeclaration)*
+PropertyDeclarations
+    = first:PropertyDeclaration rest:(__ "," __ PropertyDeclaration)*
     {
         return [first].concat(extract(rest,3));
     }
@@ -108,6 +108,9 @@ FieldDeclarations
      {
         return [];
      }
+
+PropertyDeclaration
+    = FieldDeclaration / MethodDeclaration
 
 FieldDeclaration
     = name:IdentifierName __ ":" __ type:IdentifierName
@@ -119,21 +122,12 @@ FieldDeclaration
         };
     }
 
-MethodDeclarations
-    = first:MethodDeclaration rest:(__ "," __ MethodDeclaration)*
-     {
-         return [first].concat(extract(rest,3));
-     }
-     / __
-      {
-         return [];
-      }
-
 MethodDeclaration
     = name:MethodName __ "(" __ params:ParameterList? __ ")" __ "{" __ body:MethodBody __ "}"
 		{
 		  return {
 			type: Type.MethodDeclaration,
+			name: name,
 			params: params !== null ? params : [],
 			body: body
 		  };

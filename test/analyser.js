@@ -167,5 +167,127 @@ describe("parser", function () {
             });
         });
     });
+    describe("Prototype Declarations", function () {
+        describe("let Foo = Repliq.extend({})", function () {
+            it("should return an empty PrototypeDeclaration", function () {
+                var ast = parse("let Foo = Repliq.extend({})");
+                should.exist(ast);
+                ast.imports.length.should.equal(0);
+                ast.declarations.length.should.equal(1);
+                var decl = ast.declarations[0];
+                decl.type.should.equal(Types_1.Tokens.PrototypeDeclaration);
+                decl.name.should.equal("Foo");
+                decl.super.should.equal("Repliq");
+                decl.properties.length.should.equal(0);
+            });
+        });
+        describe("let Foo = Repliq.extend({foo: String})", function () {
+            it("should return a PrototypeDeclaration with a single FieldDeclaration", function () {
+                var ast = parse("let Foo = Repliq.extend({foo: String})");
+                should.exist(ast);
+                ast.imports.length.should.equal(0);
+                ast.declarations.length.should.equal(1);
+                var decl = ast.declarations[0];
+                decl.type.should.equal(Types_1.Tokens.PrototypeDeclaration);
+                decl.name.should.equal("Foo");
+                decl.super.should.equal("Repliq");
+                decl.properties.length.should.equal(1);
+                decl.properties[0].type.should.equal(Types_1.Tokens.FieldDeclaration);
+                decl.properties[0].name.should.equal("foo");
+                decl.properties[0].value.should.equal("String");
+            });
+        });
+        describe("let Foo = Repliq.extend({foo: String, bar: Integer})", function () {
+            it("should return a PrototypeDeclaration with two FieldDeclarations", function () {
+                var ast = parse("let Foo = Repliq.extend({foo: String, bar: Integer})");
+                should.exist(ast);
+                ast.imports.length.should.equal(0);
+                ast.declarations.length.should.equal(1);
+                var decl = ast.declarations[0];
+                decl.type.should.equal(Types_1.Tokens.PrototypeDeclaration);
+                decl.name.should.equal("Foo");
+                decl.super.should.equal("Repliq");
+                decl.properties.length.should.equal(2);
+                decl.properties[0].type.should.equal(Types_1.Tokens.FieldDeclaration);
+                decl.properties[0].name.should.equal("foo");
+                decl.properties[0].value.should.equal("String");
+                decl.properties[1].type.should.equal(Types_1.Tokens.FieldDeclaration);
+                decl.properties[1].name.should.equal("bar");
+                decl.properties[1].value.should.equal("Integer");
+            });
+        });
+        describe("let Foo = Repliq.extend({foo() { 2 }})", function () {
+            it("should return a PrototypeDeclaration with a MethodDeclaration", function () {
+                var ast = parse("let Foo = Repliq.extend({foo() { 2 }})");
+                should.exist(ast);
+                ast.imports.length.should.equal(0);
+                ast.declarations.length.should.equal(1);
+                var decl = ast.declarations[0];
+                decl.type.should.equal(Types_1.Tokens.PrototypeDeclaration);
+                decl.name.should.equal("Foo");
+                decl.super.should.equal("Repliq");
+                decl.properties.length.should.equal(1);
+                decl.properties[0].type.should.equal(Types_1.Tokens.MethodDeclaration);
+                decl.properties[0].name.should.equal("foo");
+            });
+        });
+        describe("let Foo = Repliq.extend({foo() { 2 }, bar() { 2 }})", function () {
+            it("should return a PrototypeDeclaration with two MethodDeclarations", function () {
+                var ast = parse("let Foo = Repliq.extend({foo() { 2 }, bar() { 2 }})");
+                should.exist(ast);
+                ast.imports.length.should.equal(0);
+                ast.declarations.length.should.equal(1);
+                var decl = ast.declarations[0];
+                decl.type.should.equal(Types_1.Tokens.PrototypeDeclaration);
+                decl.name.should.equal("Foo");
+                decl.super.should.equal("Repliq");
+                decl.properties.length.should.equal(2);
+                decl.properties[0].type.should.equal(Types_1.Tokens.MethodDeclaration);
+                decl.properties[0].name.should.equal("foo");
+                decl.properties[1].type.should.equal(Types_1.Tokens.MethodDeclaration);
+                decl.properties[1].name.should.equal("bar");
+            });
+        });
+        describe("let Foo = Repliq.extend({foo() { 2 }, bar() { 2 }})", function () {
+            it("should return a PrototypeDeclaration with two MethodDeclarations", function () {
+                var ast = parse("let Foo = Repliq.extend({foo() { 2 }, bar() { 2 }})");
+                should.exist(ast);
+                ast.imports.length.should.equal(0);
+                ast.declarations.length.should.equal(1);
+                var decl = ast.declarations[0];
+                decl.type.should.equal(Types_1.Tokens.PrototypeDeclaration);
+                decl.name.should.equal("Foo");
+                decl.super.should.equal("Repliq");
+                decl.properties.length.should.equal(2);
+                decl.properties[0].type.should.equal(Types_1.Tokens.MethodDeclaration);
+                decl.properties[0].name.should.equal("foo");
+                decl.properties[1].type.should.equal(Types_1.Tokens.MethodDeclaration);
+                decl.properties[1].name.should.equal("bar");
+            });
+        });
+        describe("let Foo = Repliq.extend({foo: String, bar: Integer, getFoo() { this.foo }, getBar() { this.bar }})", function () {
+            it("should return a PrototypeDeclaration with two MethodDeclarations", function () {
+                var ast = parse("let Foo = Repliq.extend({foo: String, bar: Integer, getFoo() { this.foo }, getBar() { this.bar }})");
+                should.exist(ast);
+                ast.imports.length.should.equal(0);
+                ast.declarations.length.should.equal(1);
+                var decl = ast.declarations[0];
+                decl.type.should.equal(Types_1.Tokens.PrototypeDeclaration);
+                decl.name.should.equal("Foo");
+                decl.super.should.equal("Repliq");
+                decl.properties.length.should.equal(4);
+                decl.properties[0].type.should.equal(Types_1.Tokens.FieldDeclaration);
+                decl.properties[0].name.should.equal("foo");
+                decl.properties[0].value.should.equal("String");
+                decl.properties[1].type.should.equal(Types_1.Tokens.FieldDeclaration);
+                decl.properties[1].name.should.equal("bar");
+                decl.properties[1].value.should.equal("Integer");
+                decl.properties[2].type.should.equal(Types_1.Tokens.MethodDeclaration);
+                decl.properties[2].name.should.equal("getFoo");
+                decl.properties[3].type.should.equal(Types_1.Tokens.MethodDeclaration);
+                decl.properties[3].name.should.equal("getBar");
+            });
+        });
+    });
 });
 //# sourceMappingURL=analyser.js.map
