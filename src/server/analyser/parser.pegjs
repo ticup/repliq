@@ -309,11 +309,9 @@ FieldAssignment
 /////////////
 
 Literal "literal"
-	    =  NumericLiteral
-	  	 / BooleanLiteral
-	  	 / StringLiteral
-
-
+    =  NumericLiteral
+     / BooleanLiteral
+     / StringLiteral
 
 
 

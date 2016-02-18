@@ -10,7 +10,6 @@ import * as com from "../shared/Communication";
 import {Repliq} from "../shared/Repliq";
 import {ClientId} from "../shared/Types";
 import {RepliqManager, RepliqTemplateMap} from "../shared/RepliqManager";
-import {Listeners}  from "./Listeners";
 import {OperationJSON} from "../shared/Operation";
 import {Round, RoundJSON} from "../shared/Round";
 import {Operation} from "../shared/Operation";
@@ -56,7 +55,6 @@ export class RepliqServer extends RepliqManager {
 
     private channel: SocketIO.Server;
     private api: Api;
-    private listeners: Listeners;
 
     private propagator : boolean;
 
@@ -110,7 +108,6 @@ export class RepliqServer extends RepliqManager {
         this.channel.on("reconnect", (socket: SocketIO.Socket) => {
             debug("client reconnected");
         });
-        this.listeners = new Listeners();
 
 
         this.propagator = !manualPropagation;

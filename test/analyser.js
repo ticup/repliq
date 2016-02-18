@@ -288,6 +288,29 @@ describe("parser", function () {
                 decl.properties[3].name.should.equal("getBar");
             });
         });
+        describe("let Foo = Repliq.extend({foo: String, getFoo() { this.foo }, bar: Integer, getBar() { this.bar }})", function () {
+            it("should return a PrototypeDeclaration with two MethodDeclarations", function () {
+                var ast = parse("let Foo = Repliq.extend({foo: String, getFoo() { this.foo }, bar: Integer, getBar() { this.bar }})");
+                should.exist(ast);
+                ast.imports.length.should.equal(0);
+                ast.declarations.length.should.equal(1);
+                var decl = ast.declarations[0];
+                decl.type.should.equal(Types_1.Tokens.PrototypeDeclaration);
+                decl.name.should.equal("Foo");
+                decl.super.should.equal("Repliq");
+                decl.properties.length.should.equal(4);
+                decl.properties[0].type.should.equal(Types_1.Tokens.FieldDeclaration);
+                decl.properties[0].name.should.equal("foo");
+                decl.properties[0].value.should.equal("String");
+                decl.properties[2].type.should.equal(Types_1.Tokens.FieldDeclaration);
+                decl.properties[2].name.should.equal("bar");
+                decl.properties[2].value.should.equal("Integer");
+                decl.properties[1].type.should.equal(Types_1.Tokens.MethodDeclaration);
+                decl.properties[1].name.should.equal("getFoo");
+                decl.properties[3].type.should.equal(Types_1.Tokens.MethodDeclaration);
+                decl.properties[3].name.should.equal("getBar");
+            });
+        });
     });
 });
 //# sourceMappingURL=analyser.js.map

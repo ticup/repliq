@@ -8,7 +8,6 @@ var io = require("socket.io");
 var com = require("../shared/Communication");
 var Repliq_1 = require("../shared/Repliq");
 var RepliqManager_1 = require("../shared/RepliqManager");
-var Listeners_1 = require("./Listeners");
 var Round_1 = require("../shared/Round");
 var Communication_1 = require("../shared/Communication");
 var debug = Debug("Repliq:com:server");
@@ -55,7 +54,6 @@ var RepliqServer = (function (_super) {
         this.channel.on("reconnect", function (socket) {
             debug("client reconnected");
         });
-        this.listeners = new Listeners_1.Listeners();
         this.propagator = !manualPropagation;
     }
     RepliqServer.prototype.setupHandlers = function (clientId, socket) {
