@@ -1,5 +1,5 @@
 {
-	  var Type = require("../../shared/Types.js").Tokens;
+	  var Tokens = require("../../shared/Types.js").Tokens;
 
 	  function extractOptional(optional, index) {
         return optional ? optional[index] : null;
@@ -43,7 +43,7 @@ RootProgram
     = imports:ImportStatements __ declarations:PrototypeDeclarations
     {
         return {
-            type: Type.Program,
+            token: Tokens.Program,
             imports: imports,
             declarations: declarations
         };
@@ -64,15 +64,36 @@ ImportStatements
      }
 
 ImportStatement
-    = ImportToken __ "{" __ ids: ParameterList? __ "}" __ FromToken __ path:StringLiteral
+    = ImportToken __ "{" __ ids: ImportNameList? __ "}" __ FromToken __ path:StringLiteral
     {
         return {
-            type: Type.ImportStatement,
+            token: Tokens.ImportStatement,
             names: ids,
             path: path.value
         };
     }
 
+
+ImportNameList
+    = first:ImportName rest:(__ "," __ ImportName)*
+    {
+      var params = [first];
+      for (var i = 0; i < rest.length; i++) {
+         var pars = rest[i];
+         var param = pars[pars.length - 1];
+         params.push(param);
+      }
+      return params;
+    }
+    / first:ImportName?
+    {
+      if (first)
+          return [first];
+      return [];
+    }
+
+ImportName
+    = IdentifierName
 
 
 /* Declarations */
@@ -92,7 +113,7 @@ PrototypeDeclaration
     = LetToken __ name:IdentifierName __ "=" __ supr:IdentifierName ".extend({" __ properties:PropertyDeclarations __ "})"
     {
         return {
-            type: Type.PrototypeDeclaration,
+            token: Tokens.PrototypeDeclaration,
             name: name,
             super: supr,
             properties: properties
@@ -116,9 +137,9 @@ FieldDeclaration
     = name:IdentifierName __ ":" __ type:IdentifierName
     {
         return {
-            type: Type.FieldDeclaration,
+            token: Tokens.FieldDeclaration,
             name: name,
-            value: type
+            type: type
         };
     }
 
@@ -126,7 +147,7 @@ MethodDeclaration
     = name:MethodName __ "(" __ params:ParameterList? __ ")" __ "{" __ body:MethodBody __ "}"
 		{
 		  return {
-			type: Type.MethodDeclaration,
+			token: Tokens.MethodDeclaration,
 			name: name,
 			params: params !== null ? params : [],
 			body: body
@@ -155,7 +176,14 @@ ParameterList "Method parameter list"
     }
 
 Parameter
-    = IdentifierName
+    = name:IdentifierName __ ":" __ type:IdentifierName
+    {
+        return {
+            token: Tokens.ParemeterDeclaration,
+            name: name,
+            type: type
+        };
+    }
 
 
 MethodBody
@@ -188,7 +216,7 @@ LetStatement
     = LetToken __ name:IdentifierName __ "=" __ value:Expression
     {
         return {
-            type: Type.LetStatement,
+            token: Tokens.LetStatement,
             name: name,
             value: value
         };
@@ -202,7 +230,7 @@ IfStatement
   = IfToken __ "(" __ test:Expression __ ")" __ "{" __ consequence:BlockStatement __ "}" __ alternative:ElseExpression?
     {
       return {
-        type: Type.IfStatement,
+        token: Tokens.IfStatement,
         test: test,
         consequence: consequence,
         alternative: alternative
@@ -238,7 +266,7 @@ Operation
       = first:UnaryExpression __ op:Operator __ second:OperationExpression
       {
       	return {
-      		type: Type.Operation,
+      		token: Tokens.Operation,
       		op: op,
       		first: first,
       		second: second
@@ -260,17 +288,17 @@ Operator "operator"
 
 
 BinaryOperator "binary operator"
-    = "++" { return Type.PlusPlus }
-    / "+" { return Type.Plus }
-    / "-" { return Type.Minus }
-    / "*" { return Type.Multiply }
-    / "/" { return Type.Division }
-    / "<=" { return Type.SmallerThanOrEqual }
-    / ">=" { return Type.GreaterThanOrEqual }
-    / ">" { return Type.GreaterThan }
-    / "<" { return Type.SmallerThan }
-    / "==" { return Type.EqualEqual }
-    / "!=" { return Type.NotEqual }
+    = "++" { return Tokens.PlusPlus }
+    / "+" { return Tokens.Plus }
+    / "-" { return Tokens.Minus }
+    / "*" { return Tokens.Multiply }
+    / "/" { return Tokens.Division }
+    / "<=" { return Tokens.SmallerThanOrEqual }
+    / ">=" { return Tokens.GreaterThanOrEqual }
+    / ">" { return Tokens.GreaterThan }
+    / "<" { return Tokens.SmallerThan }
+    / "==" { return Tokens.EqualEqual }
+    / "!=" { return Tokens.NotEqual }
 
 
 
@@ -282,7 +310,7 @@ FieldAccess
     = ThisToken "." name:IdentifierName
     {
         return {
-            type: Type.FieldAccess,
+            token: Tokens.FieldAccess,
             field: name
         };
     }
@@ -296,7 +324,7 @@ FieldAssignment
     = ThisToken "." name:IdentifierName __ "=" __ value:Expression
     {
         return {
-            type: Type.FieldAssignment,
+            token: Tokens.FieldAssignment,
             field: name,
             value: value
         };
@@ -322,7 +350,7 @@ Literal "literal"
     = !Keyword name:IdentifierName
     {
 		return {
-			type: Type.Identifier,
+			token: Tokens.Identifier,
 			name: name
 		};
     }
@@ -374,14 +402,14 @@ Literal "literal"
       = "-" num:DecimalDigit+
       {
         return {
-            type: Type.NumericLiteral,
+            token: Tokens.NumericLiteral,
             value: (- parseInt(num.join(""), 10))
         };
       }
       / num:DecimalDigit+
 	 {
 	   return {
-	        type: Type.NumericLiteral,
+	        token: Tokens.NumericLiteral,
 	        value: parseInt(num.join(""), 10)
 	   };
 	 }
@@ -399,14 +427,14 @@ Literal "literal"
   BooleanLiteral
   	  = TrueToken
   	  { return {
-  	        type: Type.BooleanLiteral,
+  	        token: Tokens.BooleanLiteral,
   	        value: true
         };
   	  }
 
   	  / FalseToken
   	  { return {
-           type: Type.BooleanLiteral,
+           token: Tokens.BooleanLiteral,
            value: false
          };
      }
@@ -421,10 +449,10 @@ Literal "literal"
 
 StringLiteral "string"
   = '"' chars:DoubleStringCharacter* '"' {
-      return { type: Type.StringLiteral, value: chars.join("") };
+      return { token: Tokens.StringLiteral, value: chars.join("") };
     }
   / "'" chars:SingleStringCharacter* "'" {
-      return { type: Type.StringLiteral, value: chars.join("") };
+      return { token: Tokens.StringLiteral, value: chars.join("") };
     }
 
 DoubleStringCharacter

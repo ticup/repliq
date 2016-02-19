@@ -22,14 +22,14 @@ let locald = Debug("Repliq:server");
 export interface ServerOptions {
     port?: number;
     app?: http.Server;
-    schema?: RepliqTemplateMap;
+    schemaPath?: string;
     yieldEvery?: number;
     manualPropagation?: boolean;
 }
 
 
 export function createServer(opts: ServerOptions) {
-    return new RepliqServer(opts.port ? opts.port : opts.app, opts.schema, opts.yieldEvery, opts.manualPropagation);
+    return new RepliqServer(opts.port ? opts.port : opts.app, opts.schemaPath, opts.yieldEvery, opts.manualPropagation);
 }
 
 
@@ -63,7 +63,8 @@ export class RepliqServer extends RepliqManager {
     private requiresYield = false;
 
     // http server or port number, which will create its own http server.
-    constructor(app?: http.Server | number, schema?: RepliqTemplateMap, yieldEvery?: number, manualPropagation?: boolean) {
+    constructor(app?: http.Server | number, schemaPath?: string, yieldEvery?: number, manualPropagation?: boolean) {
+        let schema = createSchema(schemaPath);
         super(schema, yieldEvery);
 
         this.channel = io(app);

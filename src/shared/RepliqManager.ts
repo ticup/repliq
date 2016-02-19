@@ -46,7 +46,7 @@ export class RepliqManager extends EventEmitter {
     private templateIds: {[id: string]: number};
 
 
-    constructor(schema?: RepliqTemplateMap, yieldEvery?: number) {
+    constructor(schemaPath?: string, yieldEvery?: number) {
         super();
         this.id = guid.v4();
         this.roundNr = -1;
@@ -59,6 +59,7 @@ export class RepliqManager extends EventEmitter {
         this.incoming = [];
         this.replaying = false;
         this.templateIds = {};
+
         if (schema) {
             this.declareAll(schema);
         }

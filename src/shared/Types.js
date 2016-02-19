@@ -26,4 +26,9 @@
     Tokens[Tokens["FieldAssignment"] = 24] = "FieldAssignment";
 })(exports.Tokens || (exports.Tokens = {}));
 var Tokens = exports.Tokens;
+exports.NativeTypes = {
+    String: {},
+    Intger: {},
+    Boolean: {}
+};
 //# sourceMappingURL=Types.js.map

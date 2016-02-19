@@ -13,16 +13,17 @@ var Communication_1 = require("../shared/Communication");
 var debug = Debug("Repliq:com:server");
 var locald = Debug("Repliq:server");
 function createServer(opts) {
-    return new RepliqServer(opts.port ? opts.port : opts.app, opts.schema, opts.yieldEvery, opts.manualPropagation);
+    return new RepliqServer(opts.port ? opts.port : opts.app, opts.schemaPath, opts.yieldEvery, opts.manualPropagation);
 }
 exports.createServer = createServer;
 var RepliqServer = (function (_super) {
     __extends(RepliqServer, _super);
-    function RepliqServer(app, schema, yieldEvery, manualPropagation) {
+    function RepliqServer(app, schemaPath, yieldEvery, manualPropagation) {
         var _this = this;
-        _super.call(this, schema, yieldEvery);
         this.clients = {};
         this.requiresYield = false;
+        var schema = createSchema(schemaPath);
+        _super.call(this, schema, yieldEvery);
         this.channel = io(app);
         this.channel.on("connect", function (socket) {
             debug("client connected");

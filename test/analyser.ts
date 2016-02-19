@@ -20,7 +20,7 @@ describe("parser", () => {
             it("should return an empty MethodDeclaration", () => {
                 let ast = parseMethod("nop() { }");
                 should.exist(ast);
-                should.equal(ast.type, Tokens.MethodDeclaration);
+                should.equal(ast.token, Tokens.MethodDeclaration);
                 ast.body.should.be.an.Array;
                 ast.body.length.should.equal(0);
 
@@ -34,7 +34,7 @@ describe("parser", () => {
                 let ast = parseMethod("id() { foo }");
                 should.exist(ast);
                 let node = ast.body[0];
-                node.type.should.equal(Tokens.Identifier);
+                node.token.should.equal(Tokens.Identifier);
                 node.name.should.equal("foo");
             });
         });
@@ -46,7 +46,7 @@ describe("parser", () => {
                     let ast = parseMethod("nr() { 2 }");
                     should.exist(ast);
                     ast.body.length.should.equal(1);
-                    ast.body[0].type.should.equal(Tokens.NumericLiteral);
+                    ast.body[0].token.should.equal(Tokens.NumericLiteral);
                     ast.body[0].value.should.equal(2);
                 });
             });
@@ -56,7 +56,7 @@ describe("parser", () => {
                     let ast = parseMethod("nr() { \"foo\" }");
                     should.exist(ast);
                     ast.body.length.should.equal(1);
-                    ast.body[0].type.should.equal(Tokens.StringLiteral);
+                    ast.body[0].token.should.equal(Tokens.StringLiteral);
                     ast.body[0].value.should.equal("foo");
                 });
             });
@@ -68,7 +68,7 @@ describe("parser", () => {
                         let ast = parseMethod("nr() { true }");
                         should.exist(ast);
                         ast.body.length.should.equal(1);
-                        ast.body[0].type.should.equal(Tokens.BooleanLiteral);
+                        ast.body[0].token.should.equal(Tokens.BooleanLiteral);
                         ast.body[0].value.should.equal(true);
                     });
                 });
@@ -78,7 +78,7 @@ describe("parser", () => {
                         let ast = parseMethod("nr() { false }");
                         should.exist(ast);
                         ast.body.length.should.equal(1);
-                        ast.body[0].type.should.equal(Tokens.BooleanLiteral);
+                        ast.body[0].token.should.equal(Tokens.BooleanLiteral);
                         ast.body[0].value.should.equal(false);
                     });
                 });
@@ -90,7 +90,7 @@ describe("parser", () => {
                 let ast = parseMethod("nr() { this.foo }");
                 should.exist(ast);
                 let fa = ast.body[0];
-                fa.type.should.equal(Tokens.FieldAccess);
+                fa.token.should.equal(Tokens.FieldAccess);
                 fa.field.should.equal("foo");
             });
         });
@@ -100,9 +100,9 @@ describe("parser", () => {
                 let ast = parseMethod("nr() { this.foo = 2 }");
                 should.exist(ast);
                 let fa = ast.body[0];
-                fa.type.should.equal(Tokens.FieldAssignment);
+                fa.token.should.equal(Tokens.FieldAssignment);
                 fa.field.should.equal("foo");
-                fa.value.type.should.equal(Tokens.NumericLiteral);
+                fa.value.token.should.equal(Tokens.NumericLiteral);
             });
         });
 
@@ -112,10 +112,10 @@ describe("parser", () => {
                     let ast = parseMethod("nr() { 1 + 2 }");
                     should.exist(ast);
                     let node = ast.body[0];
-                    node.type.should.equal(Tokens.Operation);
+                    node.token.should.equal(Tokens.Operation);
                     node.op.should.equal(Tokens.Plus);
-                    node.first.type.should.equal(Tokens.NumericLiteral);
-                    node.second.type.should.equal(Tokens.NumericLiteral);
+                    node.first.token.should.equal(Tokens.NumericLiteral);
+                    node.second.token.should.equal(Tokens.NumericLiteral);
                 });
             });
 
@@ -124,10 +124,10 @@ describe("parser", () => {
                     let ast = parseMethod("nr() { (1 + 2) + (2 + 1) }");
                     should.exist(ast);
                     let node = ast.body[0];
-                    node.type.should.equal(Tokens.Operation);
+                    node.token.should.equal(Tokens.Operation);
                     node.op.should.equal(Tokens.Plus);
-                    node.first.type.should.equal(Tokens.Operation);
-                    node.second.type.should.equal(Tokens.Operation);
+                    node.first.token.should.equal(Tokens.Operation);
+                    node.second.token.should.equal(Tokens.Operation);
                 });
             });
         });
@@ -139,9 +139,9 @@ describe("parser", () => {
                 should.exist(ast);
                 ast.body.length.should.equal(1);
                 let node = ast.body[0];
-                node.type.should.equal(Tokens.LetStatement);
+                node.token.should.equal(Tokens.LetStatement);
                 node.name.should.equal("x");
-                node.value.type.should.equal(Tokens.NumericLiteral);
+                node.value.token.should.equal(Tokens.NumericLiteral);
             });
         });
 
@@ -152,12 +152,12 @@ describe("parser", () => {
                 should.exist(ast);
                 ast.body.length.should.equal(1);
                 let node = ast.body[0];
-                node.type.should.equal(Tokens.IfStatement);
-                node.test.type.should.equal(Tokens.Identifier);
+                node.token.should.equal(Tokens.IfStatement);
+                node.test.token.should.equal(Tokens.Identifier);
                 node.consequence.length.should.equal(1);
-                node.consequence[0].type.should.equal(Tokens.NumericLiteral);
+                node.consequence[0].token.should.equal(Tokens.NumericLiteral);
                 node.alternative.length.should.equal(1);
-                node.alternative[0].type.should.equal(Tokens.NumericLiteral);
+                node.alternative[0].token.should.equal(Tokens.NumericLiteral);
             });
         });
     });
@@ -168,7 +168,7 @@ describe("parser", () => {
             it("should return an ImportStatements Node", () => {
                 let ast = parse("import {Name} from \"foo\" ");
                 should.exist(ast);
-                ast.type.should.equal(Tokens.Program);
+                ast.token.should.equal(Tokens.Program);
                 ast.imports.length.should.equal(1);
                 let imp1 = ast.imports[0];
                 imp1.names.length.should.equal(1);
@@ -181,7 +181,7 @@ describe("parser", () => {
             it("should return an ImportStatements Node", () => {
                 let ast = parse("import {Name} from \"foo\" \n import{Foo, Bar} from \"path/to/file\" ");
                 should.exist(ast);
-                ast.type.should.equal(Tokens.Program);
+                ast.token.should.equal(Tokens.Program);
                 ast.imports.length.should.equal(2);
                 let imp1 = ast.imports[0];
                 imp1.names.length.should.equal(1);
@@ -204,7 +204,7 @@ describe("parser", () => {
                 ast.imports.length.should.equal(0);
                 ast.declarations.length.should.equal(1);
                 let decl = ast.declarations[0];
-                decl.type.should.equal(Tokens.PrototypeDeclaration);
+                decl.token.should.equal(Tokens.PrototypeDeclaration);
                 decl.name.should.equal("Foo");
                 decl.super.should.equal("Repliq");
                 decl.properties.length.should.equal(0);
@@ -218,13 +218,13 @@ describe("parser", () => {
                 ast.imports.length.should.equal(0);
                 ast.declarations.length.should.equal(1);
                 let decl = ast.declarations[0];
-                decl.type.should.equal(Tokens.PrototypeDeclaration);
+                decl.token.should.equal(Tokens.PrototypeDeclaration);
                 decl.name.should.equal("Foo");
                 decl.super.should.equal("Repliq");
                 decl.properties.length.should.equal(1);
-                decl.properties[0].type.should.equal(Tokens.FieldDeclaration);
+                decl.properties[0].token.should.equal(Tokens.FieldDeclaration);
                 decl.properties[0].name.should.equal("foo");
-                decl.properties[0].value.should.equal("String");
+                decl.properties[0].type.should.equal("String");
             });
         });
 
@@ -235,16 +235,16 @@ describe("parser", () => {
                 ast.imports.length.should.equal(0);
                 ast.declarations.length.should.equal(1);
                 let decl = ast.declarations[0];
-                decl.type.should.equal(Tokens.PrototypeDeclaration);
+                decl.token.should.equal(Tokens.PrototypeDeclaration);
                 decl.name.should.equal("Foo");
                 decl.super.should.equal("Repliq");
                 decl.properties.length.should.equal(2);
-                decl.properties[0].type.should.equal(Tokens.FieldDeclaration);
+                decl.properties[0].token.should.equal(Tokens.FieldDeclaration);
                 decl.properties[0].name.should.equal("foo");
-                decl.properties[0].value.should.equal("String");
-                decl.properties[1].type.should.equal(Tokens.FieldDeclaration);
+                decl.properties[0].type.should.equal("String");
+                decl.properties[1].token.should.equal(Tokens.FieldDeclaration);
                 decl.properties[1].name.should.equal("bar");
-                decl.properties[1].value.should.equal("Integer");
+                decl.properties[1].type.should.equal("Integer");
             });
         });
 
@@ -256,11 +256,11 @@ describe("parser", () => {
                 ast.imports.length.should.equal(0);
                 ast.declarations.length.should.equal(1);
                 let decl = ast.declarations[0];
-                decl.type.should.equal(Tokens.PrototypeDeclaration);
+                decl.token.should.equal(Tokens.PrototypeDeclaration);
                 decl.name.should.equal("Foo");
                 decl.super.should.equal("Repliq");
                 decl.properties.length.should.equal(1);
-                decl.properties[0].type.should.equal(Tokens.MethodDeclaration);
+                decl.properties[0].token.should.equal(Tokens.MethodDeclaration);
                 decl.properties[0].name.should.equal("foo");
             });
         });
@@ -272,13 +272,13 @@ describe("parser", () => {
                 ast.imports.length.should.equal(0);
                 ast.declarations.length.should.equal(1);
                 let decl = ast.declarations[0];
-                decl.type.should.equal(Tokens.PrototypeDeclaration);
+                decl.token.should.equal(Tokens.PrototypeDeclaration);
                 decl.name.should.equal("Foo");
                 decl.super.should.equal("Repliq");
                 decl.properties.length.should.equal(2);
-                decl.properties[0].type.should.equal(Tokens.MethodDeclaration);
+                decl.properties[0].token.should.equal(Tokens.MethodDeclaration);
                 decl.properties[0].name.should.equal("foo");
-                decl.properties[1].type.should.equal(Tokens.MethodDeclaration);
+                decl.properties[1].token.should.equal(Tokens.MethodDeclaration);
                 decl.properties[1].name.should.equal("bar");
             });
         });
@@ -291,13 +291,13 @@ describe("parser", () => {
                 ast.imports.length.should.equal(0);
                 ast.declarations.length.should.equal(1);
                 let decl = ast.declarations[0];
-                decl.type.should.equal(Tokens.PrototypeDeclaration);
+                decl.token.should.equal(Tokens.PrototypeDeclaration);
                 decl.name.should.equal("Foo");
                 decl.super.should.equal("Repliq");
                 decl.properties.length.should.equal(2);
-                decl.properties[0].type.should.equal(Tokens.MethodDeclaration);
+                decl.properties[0].token.should.equal(Tokens.MethodDeclaration);
                 decl.properties[0].name.should.equal("foo");
-                decl.properties[1].type.should.equal(Tokens.MethodDeclaration);
+                decl.properties[1].token.should.equal(Tokens.MethodDeclaration);
                 decl.properties[1].name.should.equal("bar");
             });
         });
@@ -310,21 +310,21 @@ describe("parser", () => {
                 ast.imports.length.should.equal(0);
                 ast.declarations.length.should.equal(1);
                 let decl = ast.declarations[0];
-                decl.type.should.equal(Tokens.PrototypeDeclaration);
+                decl.token.should.equal(Tokens.PrototypeDeclaration);
                 decl.name.should.equal("Foo");
                 decl.super.should.equal("Repliq");
 
                 decl.properties.length.should.equal(4);
-                decl.properties[0].type.should.equal(Tokens.FieldDeclaration);
+                decl.properties[0].token.should.equal(Tokens.FieldDeclaration);
                 decl.properties[0].name.should.equal("foo");
-                decl.properties[0].value.should.equal("String");
-                decl.properties[1].type.should.equal(Tokens.FieldDeclaration);
+                decl.properties[0].type.should.equal("String");
+                decl.properties[1].token.should.equal(Tokens.FieldDeclaration);
                 decl.properties[1].name.should.equal("bar");
-                decl.properties[1].value.should.equal("Integer");
+                decl.properties[1].type.should.equal("Integer");
 
-                decl.properties[2].type.should.equal(Tokens.MethodDeclaration);
+                decl.properties[2].token.should.equal(Tokens.MethodDeclaration);
                 decl.properties[2].name.should.equal("getFoo");
-                decl.properties[3].type.should.equal(Tokens.MethodDeclaration);
+                decl.properties[3].token.should.equal(Tokens.MethodDeclaration);
                 decl.properties[3].name.should.equal("getBar");
             });
         });
@@ -336,21 +336,21 @@ describe("parser", () => {
                 ast.imports.length.should.equal(0);
                 ast.declarations.length.should.equal(1);
                 let decl = ast.declarations[0];
-                decl.type.should.equal(Tokens.PrototypeDeclaration);
+                decl.token.should.equal(Tokens.PrototypeDeclaration);
                 decl.name.should.equal("Foo");
                 decl.super.should.equal("Repliq");
 
                 decl.properties.length.should.equal(4);
-                decl.properties[0].type.should.equal(Tokens.FieldDeclaration);
+                decl.properties[0].token.should.equal(Tokens.FieldDeclaration);
                 decl.properties[0].name.should.equal("foo");
-                decl.properties[0].value.should.equal("String");
-                decl.properties[2].type.should.equal(Tokens.FieldDeclaration);
+                decl.properties[0].type.should.equal("String");
+                decl.properties[2].token.should.equal(Tokens.FieldDeclaration);
                 decl.properties[2].name.should.equal("bar");
-                decl.properties[2].value.should.equal("Integer");
+                decl.properties[2].type.should.equal("Integer");
 
-                decl.properties[1].type.should.equal(Tokens.MethodDeclaration);
+                decl.properties[1].token.should.equal(Tokens.MethodDeclaration);
                 decl.properties[1].name.should.equal("getFoo");
-                decl.properties[3].type.should.equal(Tokens.MethodDeclaration);
+                decl.properties[3].token.should.equal(Tokens.MethodDeclaration);
                 decl.properties[3].name.should.equal("getBar");
             });
         });

@@ -13,7 +13,7 @@ var events_1 = require("events");
 var debug = Debug("Repliq:local");
 var RepliqManager = (function (_super) {
     __extends(RepliqManager, _super);
-    function RepliqManager(schema, yieldEvery) {
+    function RepliqManager(schemaPath, yieldEvery) {
         _super.call(this);
         this.id = guid.v4();
         this.roundNr = -1;

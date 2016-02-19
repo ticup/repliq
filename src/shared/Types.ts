@@ -34,3 +34,10 @@ export enum Tokens {
     FieldAssignment
 
 }
+
+
+export let NativeTypes = {
+    String: {},
+    Intger: {},
+    Boolean: {}
+};
