@@ -4,7 +4,7 @@
 ///<reference path="../src/server/RepliqServer.ts"/>
 
 "use strict";
-import {Repliq, List, sync} from "../src/shared/index";
+import {Repliq, List} from "../src/shared/index";
 import {RepliqServer as Server,
         RepliqClient as Client}  from "../src/index";
 import {createServer} from "../src/server/RepliqServer";
@@ -27,11 +27,16 @@ function delay(f) {
 describe("Repliq", () => {
 
     class FooRepliq extends Repliq {
-        public foo = "bar";
-        @sync
+        public foo : any = "bar";
+        init (f?) {
+            if (f) this.foo = f;
+        }
         setFoo(val) {
-            this.set("foo", val);
+            this.foo = val;
+            return val;
         }}
+
+
 
     let host = "http://localhost:3000";
     let port = 3000;
@@ -189,46 +194,31 @@ describe("Repliq", () => {
     describe("Repliq Serialization", () => {
         describe("sending it to the server", () => {
             it("should get it as a Repliq object with given props", (done) => {
-                class FooRepliq extends Repliq {
-                    public foo = "bar";
-                    setFoo(val) {
-                        this.set("foo", val);
-                        return val;
-                    }}
                 let server = new Server(port, {FooRepliq});
                 let client = new Client(host, {FooRepliq});
 
                 server.export({ fun: function (x) {
                     should(x).be.an.instanceof(Repliq);
-                    should(x.get("foo")).equal("foo");
+                    should(x.foo).equal("foo");
                     server.stop();
                     client.stop();
                     done();
 
                 }});
-                let r = client.create(FooRepliq, { foo: "foo" });
-                client.send("fun", r)
+                let r = client.create(FooRepliq, "foo");
+                client.send("fun", r);
             });
         });
         describe("sending it to the server and back", () => {
             it("should get it as a Repliq object", (done) => {
-                class FooRepliq extends Repliq{
-                    public foo = "bar";
-                    setFoo(val) {
-                        this.set("foo", val);
-                        return val;
-                    }}
-                let server = new Server(port);
-                let client = new Client(host);
-
-                server.declare(FooRepliq);
-                client.declare(FooRepliq);
+                let server = new Server(port, {FooRepliq});
+                let client = new Client(host, {FooRepliq});
 
                 client.onConnect().then(() => {
                     server.export({ identity: function (x) {
                         return x;
                     }});
-                    let r = client.create(FooRepliq, { foo: "foo" });
+                    let r = client.create(FooRepliq, "foo");
                     client.send("identity", r).then((r1) => {
                         should.equal(r, r1);
                         server.stop();
@@ -243,29 +233,21 @@ describe("Repliq", () => {
     describe("Synchronization", () => {
         describe("yielding on client with object creation", () => {
             it("should create the object on the server", (done) => {
-                class FooRepliq extends Repliq{
-                    public foo = "bar";
-                    setFoo(val) {
-                        this.set("foo", val);
-                        return val;
-                    }}
                 let server = new Server(port,{FooRepliq});
                 let client = new Client(host,{FooRepliq});
-
 
                 server.export({ identity: function (x) {
                     return x;
                 }});
 
                 client.onConnect().then(() => {
-
-                    let r = client.create(FooRepliq, {foo: "foo"});
+                    let r = client.create(FooRepliq, "foo");
                     client.yield();
                     setTimeout(() => {
-                        server.yield();
+                        //server.yield();
                         let r2 = server.getRepliq(r.getId());
                         should.exist(r2);
-                        should.equal(r2.get("foo"), "foo");
+                        should.equal(r2.foo, "foo");
                         stop(client, server);
                         done();
                     }, YIELD_DELAY);
@@ -275,13 +257,6 @@ describe("Repliq", () => {
 
         describe("yielding on client with object creation and call", () => {
             it("should create the object on the server", (done) => {
-                class FooRepliq extends Repliq{
-                    public foo = "bar";
-                    @sync
-                    setFoo(val) {
-                        this.set("foo", val);
-                        return val;
-                    }};
                 let server = new Server(port);
                 let client = new Client(host);
 
@@ -291,14 +266,14 @@ describe("Repliq", () => {
                 server.export({ identity: function (x) {
                     return x;
                 }});
-                let r = <FooRepliq>client.create(FooRepliq, { foo: "foo" });
+                let r = <FooRepliq>client.create(FooRepliq, "foo");
                 r.setFoo("rab");
                 client.yield();
                 setTimeout(() => {
                     server.yield();
                     let r2 = server.getRepliq(r.getId());
                     should.exist(r2);
-                    should.equal(r2.get("foo"), "rab");
+                    should.equal(r2.foo, "rab");
                     stop(server, client); done();
                 }, YIELD_DELAY);
             });
@@ -306,18 +281,11 @@ describe("Repliq", () => {
 
         describe("creating a new repliq and introduce a reference for another client", () => {
             it("should create the object on the client", (done) => {
-                class FooRepliq extends Repliq {
-                    public foo = "bar";
-                    @sync
-                    setFoo(val) {
-                        this.set("foo", val);
-                        return val;
-                    }}
                 let server = new Server(port, {FooRepliq});
                 let client = new Client(host, {FooRepliq});
                 let client2 = new Client(host, {FooRepliq});
 
-                let s = server.create(FooRepliq, {  });
+                let s = <FooRepliq>server.create(FooRepliq);
                 server.export({ getRepliq: function () {
                     return s;
                 }});
@@ -326,20 +294,20 @@ describe("Repliq", () => {
                 //let r = client.create(FooRepliq, { foo: "foo" });
                 client.send("getRepliq").then((r: FooRepliq) => {
                     client2.send("getRepliq").then((r2: FooRepliq) => {
-                        let c = <FooRepliq>client.create(FooRepliq, {});
+                        let c = <FooRepliq>client.create(FooRepliq, "foo");
                         r.setFoo(c);
                         client.yield();
 
                         delay(() => {
                             let c3 = server.getRepliq(c.getId());
                             should.exist(c3);
-                            should.exist(s.get("foo"));
-                            should(s.get("foo").getId()).equal(c3.getId());
+                            should.exist(s.foo);
+                            should(s.foo.getId()).equal(c3.getId());
 
                             delay(()=> {
                                 console.log("yielding client 2");
                                 client2.yield();
-                                let val = r2.get("foo");
+                                let val = r2.foo;
                                 should.exist(val);
                                 //should(val).be.an.instanceof(Repliq);
                                 should.equal(val.getId(), c.getId());
@@ -355,21 +323,13 @@ describe("Repliq", () => {
 
         describe("creating a new repliq on server and introduce a reference for a client", () => {
             it("should not create the object on another client", (done) => {
-                class FooRepliq extends Repliq {
-                    public foo = "bar";
-                    @sync
-                    setFoo(val) {
-                        this.set("foo", val);
-                        return val;
-                    }}
-                let server = createServer({port, schema: {FooRepliq}, manualPropagation: true});
+                let server = new Server(port,{FooRepliq});
                 let client = new Client(host, {FooRepliq});
                 let client2 = new Client(host, {FooRepliq});
 
-
                 delay(() => {
 
-                    let s  = <FooRepliq>server.create(FooRepliq, {foo: "foo"});
+                    let s  = <FooRepliq>server.create(FooRepliq, "foo");
 
                     server.export({
                         getRepliq: function () {
@@ -381,11 +341,11 @@ describe("Repliq", () => {
                     client.send("getRepliq").then((r:FooRepliq) => {
                         //client.yield();
                         should.equal(r.getId(), s.getId());
-                        should.exist(r.get("foo"));
-                        should.equal(r.get("foo"), "foo");
+                        should.exist(r.foo);
+                        should.equal(r.foo, "foo");
 
 
-                        let s2 = <FooRepliq>server.create(FooRepliq, {foo: "foo"});
+                        let s2 = <FooRepliq>server.create(FooRepliq, "foo");
                         s.setFoo(s2);
 
                         server.yield();
@@ -394,7 +354,7 @@ describe("Repliq", () => {
                             client.incoming[0].operations.length.should.equal(2);
                             client.yield();
                             client.incoming.length.should.equal(0);
-                            should.equal(r.get("foo").getId(), s2.getId());
+                            should.equal(r.foo.getId(), s2.getId());
 
                             client2.incoming.length.should.equal(0);
                             client2.yield();
@@ -410,20 +370,13 @@ describe("Repliq", () => {
 
         describe("repliq.on('changeExternal', fun) on client", () => {
             it("should call the function when the Repliq is altered by an external source", (done) => {
-                class FooRepliq extends Repliq{
-                    public foo = "bar";
-                    @sync
-                    setFoo(val) {
-                        this.set("foo", val);
-                        return val;
-                    }}
                 let server = new Server(port);
                 let client = new Client(host);
 
                 server.declare(FooRepliq);
                 client.declare(FooRepliq);
 
-                let s = <FooRepliq>server.create(FooRepliq, {  });
+                let s = <FooRepliq>server.create(FooRepliq);
                 server.export({ getRepliq: function () {
                     return s;
                 }});
@@ -448,20 +401,13 @@ describe("Repliq", () => {
 
         describe("repliq.on('changeExternal', fun) on server", () => {
             it("should call the function when the Repliq is altered by an external source", (done) => {
-                class FooRepliq extends Repliq{
-                    public foo = "bar";
-                    @sync
-                    setFoo(val) {
-                        this.set("foo", val);
-                        return val;
-                    }}
                 let server = new Server(port);
                 let client = new Client(host);
 
                 server.declare(FooRepliq);
                 client.declare(FooRepliq);
 
-                let s = <FooRepliq>server.create(FooRepliq, {  });
+                let s = <FooRepliq>server.create(FooRepliq);
                 server.export({ getRepliq: function () {
                     return s;
                 }});
@@ -495,11 +441,11 @@ describe("Repliq", () => {
                         }
                     });
 
-                    server.create(FooRepliq, {foo: "foo"});
+                    server.create(FooRepliq, "foo");
                     server.current.operations.length.should.equal(1);
-                    server.create(FooRepliq, {foo: "foo"});
+                    server.create(FooRepliq, "foo");
                     server.current.operations.length.should.equal(2);
-                    let r = <FooRepliq>server.create(FooRepliq, {foo: "foo"});
+                    let r = <FooRepliq>server.create(FooRepliq, "foo");
                     r.setFoo("barr");
                     server.current.operations.length.should.equal(4);
                     server.yield();
@@ -515,7 +461,7 @@ describe("Repliq", () => {
                     let server = new Server(port, {FooRepliq});
                     let client = new Client(host, {FooRepliq});
 
-                    let s = <FooRepliq>server.create(FooRepliq, {});
+                    let s = <FooRepliq>server.create(FooRepliq);
                     server.export({
                         getRepliq: function () {
                             return s;
@@ -553,14 +499,14 @@ describe("Repliq", () => {
                         let server = new Server(port, {FooRepliq});
 
                         server.current.getServerNr().should.equal(0);
-                        <FooRepliq>server.create(FooRepliq, {});
+                        <FooRepliq>server.create(FooRepliq);
                         server.current.getServerNr().should.equal(0);
                         server.yield();
                         server.current.getServerNr().should.equal(1);
-                        <FooRepliq>server.create(FooRepliq, {});
+                        <FooRepliq>server.create(FooRepliq);
                         server.yield();
                         server.current.getServerNr().should.equal(2);
-                        let s = <FooRepliq>server.create(FooRepliq, {});
+                        let s = <FooRepliq>server.create(FooRepliq);
                         server.yield();
                         server.current.getServerNr().should.equal(3);
                         s.setFoo("foo");
@@ -582,7 +528,7 @@ describe("Repliq", () => {
                         should.equal(server.current, round);
                         server.yield();
                         server.current.getServerNr().should.equal(0);
-                        <FooRepliq>server.create(FooRepliq, {});
+                        <FooRepliq>server.create(FooRepliq);
                         server.yield();
                         let r = server.current;
                         server.current.getServerNr().should.equal(1);
@@ -600,14 +546,14 @@ describe("Repliq", () => {
                         let client = new Client(host, {FooRepliq});
 
                         client.current.getClientNr().should.equal(0);
-                        <FooRepliq>client.create(FooRepliq, {});
+                        <FooRepliq>client.create(FooRepliq);
                         client.current.getClientNr().should.equal(0);
                         client.yield();
                         client.current.getClientNr().should.equal(1);
-                        <FooRepliq>client.create(FooRepliq, {});
+                        <FooRepliq>client.create(FooRepliq);
                         client.yield();
                         client.current.getClientNr().should.equal(2);
-                        let s = <FooRepliq>client.create(FooRepliq, {});
+                        let s = <FooRepliq>client.create(FooRepliq);
                         client.yield();
                         client.current.getClientNr().should.equal(3);
                         s.setFoo("foo");
@@ -629,7 +575,7 @@ describe("Repliq", () => {
                         should.equal(client.current, round);
                         client.yield();
                         client.current.getClientNr().should.equal(0);
-                        <FooRepliq>client.create(FooRepliq, {});
+                        <FooRepliq>client.create(FooRepliq);
                         client.yield();
                         let r = client.current;
                         client.current.getClientNr().should.equal(1);
@@ -648,7 +594,7 @@ describe("Repliq", () => {
                         let server = createServer({port, schema: {FooRepliq}, manualPropagation: true});
 
                         client.onConnect().then(() => {
-                            <FooRepliq>client.create(FooRepliq, {});
+                            <FooRepliq>client.create(FooRepliq);
                             client.yield();
                             delay(() => {
                                 server.current.getServerNr().should.equal(0);
@@ -680,20 +626,20 @@ describe("Repliq", () => {
                         Promise.all([client1.onConnect(), client2.onConnect()]).then(() => {
 
                             // client1, round 1
-                            <FooRepliq>client1.create(FooRepliq, {});
+                            <FooRepliq>client1.create(FooRepliq);
                             client1.yield();
                             // client 1, round 2
-                            <FooRepliq>client1.create(FooRepliq, {});
+                            <FooRepliq>client1.create(FooRepliq);
                             client1.yield();
 
                             // client 2, round 1
-                            <FooRepliq>client2.create(FooRepliq, {});
+                            <FooRepliq>client2.create(FooRepliq);
                             client2.yield();
                             // client 2, round 2
-                            <FooRepliq>client2.create(FooRepliq, {});
+                            <FooRepliq>client2.create(FooRepliq);
                             client2.yield();
                             //client 2, round 3
-                            <FooRepliq>client2.create(FooRepliq, {});
+                            <FooRepliq>client2.create(FooRepliq);
                             client2.yield();
 
                             client1.pending.length.should.equal(2);
@@ -742,10 +688,10 @@ describe("Repliq", () => {
                     client.onConnect().then(()=> {
                         client.stop();
 
-                        <FooRepliq>client.create(FooRepliq, {});
+                        <FooRepliq>client.create(FooRepliq);
                         client.yield();
 
-                        <FooRepliq>client.create(FooRepliq, {});
+                        <FooRepliq>client.create(FooRepliq);
                         client.yield();
 
                         delay(() => {
@@ -783,7 +729,7 @@ describe("Repliq", () => {
                     let server = createServer({port, schema: {FooRepliq}, manualPropagation: true});
 
                     client.onConnect().then(()=> {
-                        let c = <FooRepliq>client.create(FooRepliq, {});
+                        let c = <FooRepliq>client.create(FooRepliq);
                         client.yield();
                         delay(() => {
                             server.yield();
@@ -792,7 +738,7 @@ describe("Repliq", () => {
 
                             client.stop();
 
-                            let s2 = <FooRepliq>client.create(FooRepliq, {});
+                            let s2 = <FooRepliq>client.create(FooRepliq);
                             server.yield();
                             s.setFoo(s2);
                             server.yield();

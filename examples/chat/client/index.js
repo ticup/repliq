@@ -1,3 +1,4 @@
+"use strict";
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -14,10 +15,16 @@ var MainComponent = (function (_super) {
         _super.apply(this, arguments);
     }
     MainComponent.prototype.render = function () {
-        return (React.createElement("div", {"className": "ui three column centered stackable grid"}, React.createElement("div", {"className": "ui column"}, React.createElement("div", {"className": "ui stackable vertically divided grid"}, React.createElement(MessageListComponent, {"getMessages": function () { return client.send("lobby"); }, "title": "Lobby"})))));
+        return (React.createElement("div", {className: "ui three column centered stackable grid"}, 
+            React.createElement("div", {className: "ui column"}, 
+                React.createElement("div", {className: "ui stackable vertically divided grid"}, 
+                    React.createElement(MessageListComponent, {getMessages: function () { return client.send("lobby"); }, title: "Lobby"})
+                )
+            )
+        ));
     };
     return MainComponent;
-})(React.Component);
+}(React.Component));
 var MessageListComponent = (function (_super) {
     __extends(MessageListComponent, _super);
     function MessageListComponent() {
@@ -27,6 +34,7 @@ var MessageListComponent = (function (_super) {
     MessageListComponent.prototype.componentDidMount = function () {
         var _this = this;
         this.props.getMessages().then(function (messages) {
+            window["messages"] = messages;
             _this.setState({ messages: messages });
             client.on("yield", function () {
                 return _this.setState({ messages: messages });
@@ -35,21 +43,27 @@ var MessageListComponent = (function (_super) {
     };
     MessageListComponent.prototype.render = function () {
         var _this = this;
-        var items = this.state.messages.get("items").map(function (message) { return React.createElement(MessageComponent, {"message": message}); });
-        return (React.createElement("div", null, React.createElement("div", {"className": "row"}, React.createElement("div", {"className": "ui list"}, items)), React.createElement(NewMessageComponent, {"sendMessage": function (text) { return _this.state.messages.add(schema_1.Message.create({ text: text })); }})));
+        var items = this.state.messages.items.map(function (message) { return React.createElement(MessageComponent, {message: message, key: message.getId()}); });
+        return (React.createElement("div", null, 
+            React.createElement("div", {className: "row"}, 
+                React.createElement("div", {className: "ui list"}, items)
+            ), 
+            React.createElement(NewMessageComponent, {sendMessage: function (text) { return _this.state.messages.add(schema_1.Message.create(text)); }})));
     };
     return MessageListComponent;
-})(React.Component);
+}(React.Component));
 var MessageComponent = (function (_super) {
     __extends(MessageComponent, _super);
     function MessageComponent() {
         _super.apply(this, arguments);
     }
     MessageComponent.prototype.render = function () {
-        return (React.createElement("div", {"className": "item"}, React.createElement("div", null, this.props.message.get("text"))));
+        return (React.createElement("div", {className: "item"}, 
+            React.createElement("div", null, this.props.message.text)
+        ));
     };
     return MessageComponent;
-})(React.Component);
+}(React.Component));
 var NewMessageComponent = (function (_super) {
     __extends(NewMessageComponent, _super);
     function NewMessageComponent() {
@@ -61,9 +75,18 @@ var NewMessageComponent = (function (_super) {
     };
     NewMessageComponent.prototype.render = function () {
         var _this = this;
-        return (React.createElement("div", {"className": "row"}, React.createElement("div", {"className": "column"}, React.createElement("div", {"className": "segment"}, React.createElement("div", {"className": "ui action left icon labeled input"}, React.createElement("i", {"className": "comment icon"}), React.createElement("input", {"ref": "text", "type": "text", "name": "Message", "placeholder": "say something..."}), React.createElement("div", {"className": "ui teal button", "onClick": function (e) { return _this.submit(); }}, "Set!"))))));
+        return (React.createElement("div", {className: "row"}, 
+            React.createElement("div", {className: "column"}, 
+                React.createElement("div", {className: "segment"}, 
+                    React.createElement("div", {className: "ui action left icon labeled input"}, 
+                        React.createElement("i", {className: "comment icon"}), 
+                        React.createElement("input", {ref: "text", type: "text", name: "Message", placeholder: "say something..."}), 
+                        React.createElement("div", {className: "ui teal button", onClick: function (e) { return _this.submit(); }}, "Set!"))
+                )
+            )
+        ));
     };
     return NewMessageComponent;
-})(React.Component);
+}(React.Component));
 ReactDOM.render(React.createElement(MainComponent, null), document.getElementById('main'));
 //# sourceMappingURL=index.js.map

@@ -6,6 +6,21 @@ import {RepliqData} from "./RepliqData";
 import {ClientId} from "./Types";
 import {EventEmitter} from "events";
 import {List} from "immutable";
+require("harmony-reflect");
+
+declare var Proxy;
+//
+//interface RepliqPrototype {
+//    id: number;
+//    isRepliq: boolean;
+//    manager: RepliqManager;
+//    getId(): number;
+//    stub(Object: args): any;
+//    create(Array<any>):
+//
+//
+//}
+
 
 export class Repliq extends EventEmitter {
     public static id: number;
@@ -16,19 +31,20 @@ export class Repliq extends EventEmitter {
 
     static isRepliq : boolean = true;
 
+    static isPrototype : boolean = true;
+
     public static manager: RepliqManager;
-
-    static fields = {
-
-    };
 
     static getId() {
         return this.id;
     }
 
-    static stub(args = {}) : any {
-        let data = new RepliqData(args);
-        let repl = new this(this, data, null, null);
+    static stub(args: Array<any> = []) : any {
+        let data = new RepliqData();
+        //let repl = new this(this, data, null, null);
+        //if (typeof repl["init"] === "function") {
+        //    repl["init"].apply(repl, args);
+        //}
 
         class Stub extends this {
             constructor(template: typeof Repliq, data: RepliqData) {
@@ -44,30 +60,36 @@ export class Repliq extends EventEmitter {
             }
         }
 
-        return new Stub(this, data);
+        let repl = new Stub(this, data);
+        let proxy = createProxy(repl);
+        if (repl.getMethod("init")) {
+            repl.getMethod("init").apply(proxy, args);
+        }
+        return proxy;
     }
 
-    static create(args = {}) {
+    static create(...args) {
         if (typeof this.manager === "undefined") {
             throw new Error("Repliq must first be declared to a manager");
         }
-        this.manager.create(this, args);
+        return this.manager.create.apply(this.manager, [this].concat(args));
     }
 
-    static extend(props = {}) {
-        function F() {
-            Object.keys(props).forEach((name) => {
-                if (props.hasOwnProperty(name)) {
-                    let val = props[name];
-                    if (typeof val === "function") {
-                        // TODO: Parse val.toString()
-                    } else {
-
-                    }
-                }
-            })
-        }
+    static extend(props = {})  {
+        let F = <typeof Repliq> <any>function F() {};
+        F.prototype = Object.assign(Object.create(Repliq.prototype), props);
+        Object.keys(Repliq).forEach((key) => F[key] = Repliq[key]);
+        //F.extend = Repliq.extend;
+        //F.create = Repliq.create;
+        //F.getId = Repliq.getId;
+        //F.isRepliq = true;
+        //F.stub = Repliq.stub;
         return F;
+    }
+
+    // cannot be toString(), because that is used to get the text representation
+    static toStrings() {
+        return "P: " + this.getId().toString().slice(-5);
     }
 
 
@@ -93,7 +115,11 @@ export class Repliq extends EventEmitter {
 
 
     getMethod(op) {
-        return this[op];
+        let method = this[op];
+        if (typeof method === "function") {
+            return method;
+        }
+        return undefined;
     }
 
 
@@ -101,6 +127,10 @@ export class Repliq extends EventEmitter {
 
     get(key) {
         return this.data.getTentative(key);
+    }
+
+    has(key) {
+        return this.data.has(key);
     }
 
     set(key, value) {
@@ -111,19 +141,17 @@ export class Repliq extends EventEmitter {
         return !this.data.hasTentative();
     }
 
+    fields() {
+        return this.data.getKeys();
+    }
+
     //set(key, val) {
     //    this.call("set", key, val);
         //return this.data.setTentative(key, val);
     //}
 
     getCommit(key) {
-        return this.data.getCommitted(key);
-    }
-
-    call(op, fun: Function, args) {
-        let val = this.manager.call(this, this.data, op, fun, args);
-        //this.manager.notifyChanged();
-        return val;
+        return this.data.getCommit(key);
     }
 
 
@@ -138,14 +166,13 @@ export class Repliq extends EventEmitter {
     }
 
 
-    committedKeys() {
-        return this.data.getCommittedKeys();
-    }
-
-    init() { }
+    //committedKeys() {
+    //    return this.data.getCommittedKeys();
+    //}
 
     toString() {
-        return "{" + this.clientId.slice(-5) + "@" + this.getId().slice(-5) + "}";
+        return "{" + this.getId().slice(-5) + "}";
+        //return "{" + this.clientId.slice(-5) + "@" + this.getId().slice(-5) + "}";
     }
 }
 
@@ -157,6 +184,44 @@ export function sync(target: any, key: string, prop: any) {
             return this.call(key, prop.value, args);
         }
     };
+}
+
+export function createProxy(repl) {
+    let proxy = new Proxy(repl, {
+        has(target, key) {
+            return target.has(key);
+        },
+        get(target, key, receiver) {
+            // a standard repliq method
+            let rmethod = Repliq.prototype[key];
+            if (typeof rmethod === "function") {
+                return rmethod.bind(target);
+            }
+
+            // a custom repliq method
+            let method = target.getMethod(key);
+            if (typeof method !== "undefined") {
+                return function repliqMethod(...args) {
+                    let val = repl.manager.call(target, target.data, proxy, key, method, args);
+                    return val;
+                };
+            }
+
+            // a repliq property
+            return target.get(key);
+        },
+        set(target, key, value, receiver) {
+            target.set(key, value);
+            return true;
+        },
+        preventExtensions() { return true; },
+        setPrototypeOf() { return false; },
+        deleteProperty(target, key) { return false; },
+        defineProperty(target, key, attributes) { return false },
+        enumerate(target) { return target.fields(); },
+        ownKeys(target) { return target.fields(); }
+    });
+    return proxy;
 }
 
 function validate(val) {

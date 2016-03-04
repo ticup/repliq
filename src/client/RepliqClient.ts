@@ -4,7 +4,7 @@
 
 import * as Debug from "debug";
 import * as io from 'socket.io-client';
-import * as Promise from "bluebird";
+import {Promise} from 'es6-promise';
 
 import * as com from "../shared/Communication";
 import {RepliqManager} from "../shared/RepliqManager";
@@ -38,7 +38,7 @@ export class RepliqClient extends RepliqManager {
     }
 
     setupYieldPush(channel: SocketIOClient.Socket) {
-        channel.on("YieldPush", (round: RoundJSON) => this.handleYieldPull(round));
+        channel.on("YieldPush", (round: RoundJSON) => this.handleYieldPush(round));
     }
 
     handshake(): Promise<any> {
@@ -77,8 +77,8 @@ export class RepliqClient extends RepliqManager {
         return this.onConnectP;
     }
 
-    handleYieldPull(json: RoundJSON) {
-        debug("YieldPull: received round");
+    handleYieldPush(json: RoundJSON) {
+        debug("YieldPush: received round");
         let round = Round.fromJSON(json, this);
         this.incoming.push(round);
         //this.notifyChanged();
@@ -92,6 +92,10 @@ export class RepliqClient extends RepliqManager {
     send(selector: string, ...args: Object[]): Promise<any> {
         return this.onConnect().then(() => {
             return new Promise((resolve, reject) => {
+                this.yield();
+                if (this.replaying) {
+                    return reject("cannot send in a repliq method");
+                }
                 debug("sending rpc " + selector + "(" + args + ")");
                 let rpc = <com.RpcRequest> {selector, args: args.map(com.toJSON)};
                 this.channel.emit("rpc", rpc, (error:string, result:Object) => {
@@ -121,13 +125,14 @@ export class RepliqClient extends RepliqManager {
             let round = this.current;
             this.pending.push(round);
             this.current = this.newRound();
-            debug("YieldPull: " + JSON.stringify(round.toJSON()));
+            debug("YieldPull: " + round.toString());
             this.channel.emit("YieldPull", round.toJSON());
         }
 
 
         // master->client yield
         if (this.incoming.length > 0) {
+            debug("YieldPush: " + this.incoming);
             this.replaying = true;
 
             let pending = this.pending;

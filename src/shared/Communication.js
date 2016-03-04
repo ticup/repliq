@@ -25,7 +25,7 @@ function toJSON(val) {
         }
         if (val instanceof Repliq_1.Repliq) {
             var obj_1 = { id: val.getId(), values: {}, templateId: val.getTemplate().getId() };
-            val.committedKeys().forEach(function (key) { return obj_1.values[key] = toJSON(val.getCommit(key)); });
+            val.fields().forEach(function (key) { return obj_1.values[key] = toJSON(val.getCommit(key)); });
             return { val: obj_1, type: "Repliq" };
         }
         var obj = {};
@@ -92,12 +92,12 @@ function getRepliqReferences(val) {
         }
         if (val instanceof Repliq_1.Repliq) {
             var repl = val;
-            return [repl.getId()].concat(repl.committedKeys().reduce(function (acc, key) { return acc.concat(getRepliqReferences(repl.get(key))); }, []));
+            return [repl.getId()].concat(repl.fields().reduce(function (acc, key) { return acc.concat(getRepliqReferences(repl.get(key))); }, []));
         }
         return Object.keys(val).reduce(function (acc, key) { return acc.concat(getRepliqReferences(val[key])); }, []);
     }
     if (type === "function" && val.isRepliq) {
-        return Object.keys(val.fields).reduce(function (acc, name) { return acc.concat(getRepliqReferences(val.fields[name])); }, []);
+        return [];
     }
     return [];
 }

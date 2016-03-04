@@ -66,6 +66,8 @@ export class Operation {
     }
 
     public toString() {
-        return "" + this.targetId.slice(-5) + "." + this.selector + "(" + this.args.map((arg) => arg.toString()).join(", ") + ")";
+        //return "foo";
+        let args = this.args.map((arg: any) => arg.isPrototype ? arg.toStrings() : (typeof arg === "string" ? arg.slice(-5) : arg.toString())).join(", ");
+        return "" + (typeof this.targetId === "undefined" ? "" : this.targetId.slice(-5)) + "." + this.selector + "(" + args + ")";
     }
 }

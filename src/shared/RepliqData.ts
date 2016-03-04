@@ -20,6 +20,10 @@ export class RepliqData {
         return this.getTentative(key);
     }
 
+    has (key) {
+        return (typeof this.getTentative(key) !== "undefined");
+    }
+
     set(key, val) {
         return this.setTentative(key, val);
     }
@@ -40,27 +44,27 @@ export class RepliqData {
     }
 
 
-    getKeys() {
+    getTentativeKeys() {
         return Object.keys(this.tentative);
     }
 
-    getCommitted(key) {
+    getCommit(key) {
         return this.committed[key];
     }
 
-    getCommittedKeys() {
+    getKeys() {
         return Object.keys(this.committed);
     }
 
     commitValues() {
-        this.getKeys().forEach((key) => {
+        this.getTentativeKeys().forEach((key) => {
             this.committed[key] = this.tentative[key];
             delete this.tentative[key]; });
     }
 
     setToCommit() {
-        this.getCommittedKeys().forEach((key) =>
-            this.tentative[key] = this.committed[key]);
+        this.getTentativeKeys().forEach((key) =>
+            delete this.tentative[key]);
     }
 
 }

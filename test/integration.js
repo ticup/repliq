@@ -4,12 +4,6 @@ var __extends = (this && this.__extends) || function (d, b) {
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
 var index_1 = require("../src/shared/index");
 var index_2 = require("../src/index");
 var RepliqServer_1 = require("../src/server/RepliqServer");
@@ -35,12 +29,14 @@ describe("Repliq", function () {
             _super.apply(this, arguments);
             this.foo = "bar";
         }
-        FooRepliq.prototype.setFoo = function (val) {
-            this.set("foo", val);
+        FooRepliq.prototype.init = function (f) {
+            if (f)
+                this.foo = f;
         };
-        __decorate([
-            index_1.sync
-        ], FooRepliq.prototype, "setFoo", null);
+        FooRepliq.prototype.setFoo = function (val) {
+            this.foo = val;
+            return val;
+        };
         return FooRepliq;
     })(index_1.Repliq);
     var host = "http://localhost:3000";
@@ -175,54 +171,28 @@ describe("Repliq", function () {
     describe("Repliq Serialization", function () {
         describe("sending it to the server", function () {
             it("should get it as a Repliq object with given props", function (done) {
-                var FooRepliq = (function (_super) {
-                    __extends(FooRepliq, _super);
-                    function FooRepliq() {
-                        _super.apply(this, arguments);
-                        this.foo = "bar";
-                    }
-                    FooRepliq.prototype.setFoo = function (val) {
-                        this.set("foo", val);
-                        return val;
-                    };
-                    return FooRepliq;
-                })(index_1.Repliq);
                 var server = new index_2.RepliqServer(port, { FooRepliq: FooRepliq });
                 var client = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
                 server.export({ fun: function (x) {
                         should(x).be.an.instanceof(index_1.Repliq);
-                        should(x.get("foo")).equal("foo");
+                        should(x.foo).equal("foo");
                         server.stop();
                         client.stop();
                         done();
                     } });
-                var r = client.create(FooRepliq, { foo: "foo" });
+                var r = client.create(FooRepliq, "foo");
                 client.send("fun", r);
             });
         });
         describe("sending it to the server and back", function () {
             it("should get it as a Repliq object", function (done) {
-                var FooRepliq = (function (_super) {
-                    __extends(FooRepliq, _super);
-                    function FooRepliq() {
-                        _super.apply(this, arguments);
-                        this.foo = "bar";
-                    }
-                    FooRepliq.prototype.setFoo = function (val) {
-                        this.set("foo", val);
-                        return val;
-                    };
-                    return FooRepliq;
-                })(index_1.Repliq);
-                var server = new index_2.RepliqServer(port);
-                var client = new index_2.RepliqClient(host);
-                server.declare(FooRepliq);
-                client.declare(FooRepliq);
+                var server = new index_2.RepliqServer(port, { FooRepliq: FooRepliq });
+                var client = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
                 client.onConnect().then(function () {
                     server.export({ identity: function (x) {
                             return x;
                         } });
-                    var r = client.create(FooRepliq, { foo: "foo" });
+                    var r = client.create(FooRepliq, "foo");
                     client.send("identity", r).then(function (r1) {
                         should.equal(r, r1);
                         server.stop();
@@ -236,31 +206,18 @@ describe("Repliq", function () {
     describe("Synchronization", function () {
         describe("yielding on client with object creation", function () {
             it("should create the object on the server", function (done) {
-                var FooRepliq = (function (_super) {
-                    __extends(FooRepliq, _super);
-                    function FooRepliq() {
-                        _super.apply(this, arguments);
-                        this.foo = "bar";
-                    }
-                    FooRepliq.prototype.setFoo = function (val) {
-                        this.set("foo", val);
-                        return val;
-                    };
-                    return FooRepliq;
-                })(index_1.Repliq);
                 var server = new index_2.RepliqServer(port, { FooRepliq: FooRepliq });
                 var client = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
                 server.export({ identity: function (x) {
                         return x;
                     } });
                 client.onConnect().then(function () {
-                    var r = client.create(FooRepliq, { foo: "foo" });
+                    var r = client.create(FooRepliq, "foo");
                     client.yield();
                     setTimeout(function () {
-                        server.yield();
                         var r2 = server.getRepliq(r.getId());
                         should.exist(r2);
-                        should.equal(r2.get("foo"), "foo");
+                        should.equal(r2.foo, "foo");
                         stop(client, server);
                         done();
                     }, YIELD_DELAY);
@@ -269,22 +226,6 @@ describe("Repliq", function () {
         });
         describe("yielding on client with object creation and call", function () {
             it("should create the object on the server", function (done) {
-                var FooRepliq = (function (_super) {
-                    __extends(FooRepliq, _super);
-                    function FooRepliq() {
-                        _super.apply(this, arguments);
-                        this.foo = "bar";
-                    }
-                    FooRepliq.prototype.setFoo = function (val) {
-                        this.set("foo", val);
-                        return val;
-                    };
-                    __decorate([
-                        index_1.sync
-                    ], FooRepliq.prototype, "setFoo", null);
-                    return FooRepliq;
-                })(index_1.Repliq);
-                ;
                 var server = new index_2.RepliqServer(port);
                 var client = new index_2.RepliqClient(host);
                 server.declare(FooRepliq);
@@ -292,14 +233,14 @@ describe("Repliq", function () {
                 server.export({ identity: function (x) {
                         return x;
                     } });
-                var r = client.create(FooRepliq, { foo: "foo" });
+                var r = client.create(FooRepliq, "foo");
                 r.setFoo("rab");
                 client.yield();
                 setTimeout(function () {
                     server.yield();
                     var r2 = server.getRepliq(r.getId());
                     should.exist(r2);
-                    should.equal(r2.get("foo"), "rab");
+                    should.equal(r2.foo, "rab");
                     stop(server, client);
                     done();
                 }, YIELD_DELAY);
@@ -307,42 +248,27 @@ describe("Repliq", function () {
         });
         describe("creating a new repliq and introduce a reference for another client", function () {
             it("should create the object on the client", function (done) {
-                var FooRepliq = (function (_super) {
-                    __extends(FooRepliq, _super);
-                    function FooRepliq() {
-                        _super.apply(this, arguments);
-                        this.foo = "bar";
-                    }
-                    FooRepliq.prototype.setFoo = function (val) {
-                        this.set("foo", val);
-                        return val;
-                    };
-                    __decorate([
-                        index_1.sync
-                    ], FooRepliq.prototype, "setFoo", null);
-                    return FooRepliq;
-                })(index_1.Repliq);
                 var server = new index_2.RepliqServer(port, { FooRepliq: FooRepliq });
                 var client = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
                 var client2 = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
-                var s = server.create(FooRepliq, {});
+                var s = server.create(FooRepliq);
                 server.export({ getRepliq: function () {
                         return s;
                     } });
                 client.send("getRepliq").then(function (r) {
                     client2.send("getRepliq").then(function (r2) {
-                        var c = client.create(FooRepliq, {});
+                        var c = client.create(FooRepliq, "foo");
                         r.setFoo(c);
                         client.yield();
                         delay(function () {
                             var c3 = server.getRepliq(c.getId());
                             should.exist(c3);
-                            should.exist(s.get("foo"));
-                            should(s.get("foo").getId()).equal(c3.getId());
+                            should.exist(s.foo);
+                            should(s.foo.getId()).equal(c3.getId());
                             delay(function () {
                                 console.log("yielding client 2");
                                 client2.yield();
-                                var val = r2.get("foo");
+                                var val = r2.foo;
                                 should.exist(val);
                                 should.equal(val.getId(), c.getId());
                                 stop(server, client, client2);
@@ -355,26 +281,11 @@ describe("Repliq", function () {
         });
         describe("creating a new repliq on server and introduce a reference for a client", function () {
             it("should not create the object on another client", function (done) {
-                var FooRepliq = (function (_super) {
-                    __extends(FooRepliq, _super);
-                    function FooRepliq() {
-                        _super.apply(this, arguments);
-                        this.foo = "bar";
-                    }
-                    FooRepliq.prototype.setFoo = function (val) {
-                        this.set("foo", val);
-                        return val;
-                    };
-                    __decorate([
-                        index_1.sync
-                    ], FooRepliq.prototype, "setFoo", null);
-                    return FooRepliq;
-                })(index_1.Repliq);
-                var server = RepliqServer_1.createServer({ port: port, schema: { FooRepliq: FooRepliq }, manualPropagation: true });
+                var server = new index_2.RepliqServer(port, { FooRepliq: FooRepliq });
                 var client = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
                 var client2 = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
                 delay(function () {
-                    var s = server.create(FooRepliq, { foo: "foo" });
+                    var s = server.create(FooRepliq, "foo");
                     server.export({
                         getRepliq: function () {
                             return s;
@@ -383,9 +294,9 @@ describe("Repliq", function () {
                     server.yield();
                     client.send("getRepliq").then(function (r) {
                         should.equal(r.getId(), s.getId());
-                        should.exist(r.get("foo"));
-                        should.equal(r.get("foo"), "foo");
-                        var s2 = server.create(FooRepliq, { foo: "foo" });
+                        should.exist(r.foo);
+                        should.equal(r.foo, "foo");
+                        var s2 = server.create(FooRepliq, "foo");
                         s.setFoo(s2);
                         server.yield();
                         delay(function () {
@@ -393,7 +304,7 @@ describe("Repliq", function () {
                             client.incoming[0].operations.length.should.equal(2);
                             client.yield();
                             client.incoming.length.should.equal(0);
-                            should.equal(r.get("foo").getId(), s2.getId());
+                            should.equal(r.foo.getId(), s2.getId());
                             client2.incoming.length.should.equal(0);
                             client2.yield();
                             stop(server, client, client2);
@@ -405,26 +316,11 @@ describe("Repliq", function () {
         });
         describe("repliq.on('changeExternal', fun) on client", function () {
             it("should call the function when the Repliq is altered by an external source", function (done) {
-                var FooRepliq = (function (_super) {
-                    __extends(FooRepliq, _super);
-                    function FooRepliq() {
-                        _super.apply(this, arguments);
-                        this.foo = "bar";
-                    }
-                    FooRepliq.prototype.setFoo = function (val) {
-                        this.set("foo", val);
-                        return val;
-                    };
-                    __decorate([
-                        index_1.sync
-                    ], FooRepliq.prototype, "setFoo", null);
-                    return FooRepliq;
-                })(index_1.Repliq);
                 var server = new index_2.RepliqServer(port);
                 var client = new index_2.RepliqClient(host);
                 server.declare(FooRepliq);
                 client.declare(FooRepliq);
-                var s = server.create(FooRepliq, {});
+                var s = server.create(FooRepliq);
                 server.export({ getRepliq: function () {
                         return s;
                     } });
@@ -444,26 +340,11 @@ describe("Repliq", function () {
         });
         describe("repliq.on('changeExternal', fun) on server", function () {
             it("should call the function when the Repliq is altered by an external source", function (done) {
-                var FooRepliq = (function (_super) {
-                    __extends(FooRepliq, _super);
-                    function FooRepliq() {
-                        _super.apply(this, arguments);
-                        this.foo = "bar";
-                    }
-                    FooRepliq.prototype.setFoo = function (val) {
-                        this.set("foo", val);
-                        return val;
-                    };
-                    __decorate([
-                        index_1.sync
-                    ], FooRepliq.prototype, "setFoo", null);
-                    return FooRepliq;
-                })(index_1.Repliq);
                 var server = new index_2.RepliqServer(port);
                 var client = new index_2.RepliqClient(host);
                 server.declare(FooRepliq);
                 client.declare(FooRepliq);
-                var s = server.create(FooRepliq, {});
+                var s = server.create(FooRepliq);
                 server.export({ getRepliq: function () {
                         return s;
                     } });
@@ -489,11 +370,11 @@ describe("Repliq", function () {
                             return x;
                         }
                     });
-                    server.create(FooRepliq, { foo: "foo" });
+                    server.create(FooRepliq, "foo");
                     server.current.operations.length.should.equal(1);
-                    server.create(FooRepliq, { foo: "foo" });
+                    server.create(FooRepliq, "foo");
                     server.current.operations.length.should.equal(2);
-                    var r = server.create(FooRepliq, { foo: "foo" });
+                    var r = server.create(FooRepliq, "foo");
                     r.setFoo("barr");
                     server.current.operations.length.should.equal(4);
                     server.yield();
@@ -506,7 +387,7 @@ describe("Repliq", function () {
                 it("should automatically propagate a round when received from client", function (done) {
                     var server = new index_2.RepliqServer(port, { FooRepliq: FooRepliq });
                     var client = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
-                    var s = server.create(FooRepliq, {});
+                    var s = server.create(FooRepliq);
                     server.export({
                         getRepliq: function () {
                             return s;
@@ -537,14 +418,14 @@ describe("Repliq", function () {
                     it("should create successive numbers, starting from 0", function (done) {
                         var server = new index_2.RepliqServer(port, { FooRepliq: FooRepliq });
                         server.current.getServerNr().should.equal(0);
-                        server.create(FooRepliq, {});
+                        server.create(FooRepliq);
                         server.current.getServerNr().should.equal(0);
                         server.yield();
                         server.current.getServerNr().should.equal(1);
-                        server.create(FooRepliq, {});
+                        server.create(FooRepliq);
                         server.yield();
                         server.current.getServerNr().should.equal(2);
-                        var s = server.create(FooRepliq, {});
+                        var s = server.create(FooRepliq);
                         server.yield();
                         server.current.getServerNr().should.equal(3);
                         s.setFoo("foo");
@@ -564,7 +445,7 @@ describe("Repliq", function () {
                         should.equal(server.current, round);
                         server.yield();
                         server.current.getServerNr().should.equal(0);
-                        server.create(FooRepliq, {});
+                        server.create(FooRepliq);
                         server.yield();
                         var r = server.current;
                         server.current.getServerNr().should.equal(1);
@@ -581,14 +462,14 @@ describe("Repliq", function () {
                     it("should create successive numbers, starting from 0", function (done) {
                         var client = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
                         client.current.getClientNr().should.equal(0);
-                        client.create(FooRepliq, {});
+                        client.create(FooRepliq);
                         client.current.getClientNr().should.equal(0);
                         client.yield();
                         client.current.getClientNr().should.equal(1);
-                        client.create(FooRepliq, {});
+                        client.create(FooRepliq);
                         client.yield();
                         client.current.getClientNr().should.equal(2);
-                        var s = client.create(FooRepliq, {});
+                        var s = client.create(FooRepliq);
                         client.yield();
                         client.current.getClientNr().should.equal(3);
                         s.setFoo("foo");
@@ -608,7 +489,7 @@ describe("Repliq", function () {
                         should.equal(client.current, round);
                         client.yield();
                         client.current.getClientNr().should.equal(0);
-                        client.create(FooRepliq, {});
+                        client.create(FooRepliq);
                         client.yield();
                         var r = client.current;
                         client.current.getClientNr().should.equal(1);
@@ -626,7 +507,7 @@ describe("Repliq", function () {
                         var client = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
                         var server = RepliqServer_1.createServer({ port: port, schema: { FooRepliq: FooRepliq }, manualPropagation: true });
                         client.onConnect().then(function () {
-                            client.create(FooRepliq, {});
+                            client.create(FooRepliq);
                             client.yield();
                             delay(function () {
                                 server.current.getServerNr().should.equal(0);
@@ -654,15 +535,15 @@ describe("Repliq", function () {
                         var client2 = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
                         var server = RepliqServer_1.createServer({ port: port, schema: { FooRepliq: FooRepliq }, manualPropagation: true });
                         Promise.all([client1.onConnect(), client2.onConnect()]).then(function () {
-                            client1.create(FooRepliq, {});
+                            client1.create(FooRepliq);
                             client1.yield();
-                            client1.create(FooRepliq, {});
+                            client1.create(FooRepliq);
                             client1.yield();
-                            client2.create(FooRepliq, {});
+                            client2.create(FooRepliq);
                             client2.yield();
-                            client2.create(FooRepliq, {});
+                            client2.create(FooRepliq);
                             client2.yield();
-                            client2.create(FooRepliq, {});
+                            client2.create(FooRepliq);
                             client2.yield();
                             client1.pending.length.should.equal(2);
                             client2.pending.length.should.equal(3);
@@ -699,9 +580,9 @@ describe("Repliq", function () {
                     var server = RepliqServer_1.createServer({ port: port, schema: { FooRepliq: FooRepliq }, manualPropagation: true });
                     client.onConnect().then(function () {
                         client.stop();
-                        client.create(FooRepliq, {});
+                        client.create(FooRepliq);
                         client.yield();
-                        client.create(FooRepliq, {});
+                        client.create(FooRepliq);
                         client.yield();
                         delay(function () {
                             client.pending.length.should.equal(2);
@@ -731,14 +612,14 @@ describe("Repliq", function () {
                     var client = new index_2.RepliqClient(host, { FooRepliq: FooRepliq });
                     var server = RepliqServer_1.createServer({ port: port, schema: { FooRepliq: FooRepliq }, manualPropagation: true });
                     client.onConnect().then(function () {
-                        var c = client.create(FooRepliq, {});
+                        var c = client.create(FooRepliq);
                         client.yield();
                         delay(function () {
                             server.yield();
                             var s = server.getRepliq(c.getId());
                             should.exist(s);
                             client.stop();
-                            var s2 = client.create(FooRepliq, {});
+                            var s2 = client.create(FooRepliq);
                             server.yield();
                             s.setFoo(s2);
                             server.yield();

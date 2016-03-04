@@ -1,14 +1,13 @@
 ///<reference path="../Repliq.ts" />
 
-import {Repliq, sync} from "../Repliq";
+import {Repliq} from "../Repliq";
 
-export class Register extends Repliq {
-    @sync
-    public setVal(value) {
+export let Register = Repliq.extend({
+
+    setVal(value) {
         return this.set("value", value);
-    }
-
-    public getVal() {
+    },
+    getVal() {
         return this.get("value");
     }
-}
+});

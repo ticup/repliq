@@ -1,8 +1,5 @@
 
-///<reference path="../../../src/server/references.d.ts" />
-///<reference path="../../../typings/tsd.d.ts" />
 ///<reference path="../schema.ts" />
-///<reference path="../../../src/shared/protocols/Time.ts"/>
 
 import {MessageList, Message} from "../schema";
 import * as express from "express";
@@ -20,7 +17,7 @@ let server = new RepliqServer(hserv, {Message, MessageList});
 /*
     Create the repliq instances
  */
-let _lobby = <MessageList> MessageList.create();
+let _lobby = MessageList.create("general");
 
 
 server.export({

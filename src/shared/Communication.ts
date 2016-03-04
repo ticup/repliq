@@ -46,7 +46,7 @@ export function toJSON(val: Object): ValueJSON {
         }
         if (val instanceof Repliq) {
             let obj = {id: val.getId(), values: {}, templateId: val.getTemplate().getId()};
-            val.committedKeys().forEach((key) => obj.values[key] = toJSON(val.getCommit(key)));
+            val.fields().forEach((key) => obj.values[key] = toJSON(val.getCommit(key)));
             return { val: obj, type: "Repliq" };
         }
         let obj = {};
@@ -84,6 +84,7 @@ export function fromJSON({val, type}: ValueJSON, client: RepliqManager) {
         let repl = client.getRepliq(val.id);
         if (repl)
             return repl;
+
         let template = client.getTemplate(val.templateId);
         if (!template) {
             throw new Error("undefined template: " + val.templateId);
@@ -107,6 +108,8 @@ export function fromJSON({val, type}: ValueJSON, client: RepliqManager) {
     throw new Error("unknown serialize value" + val);
 }
 
+
+// TODO: Fix
 export function getRepliqReferences(val) {
     let type = typeof val;
 
@@ -121,7 +124,7 @@ export function getRepliqReferences(val) {
 
         if (val instanceof Repliq) {
             let repl = <Repliq>val;
-            return [repl.getId()].concat(repl.committedKeys().reduce((acc, key) => acc.concat(getRepliqReferences(repl.get(key))), []));
+            return [repl.getId()].concat(repl.fields().reduce((acc, key) => acc.concat(getRepliqReferences(repl.get(key))), []));
         }
 
 
@@ -130,7 +133,8 @@ export function getRepliqReferences(val) {
     }
 
     if (type === "function" && (<any>val).isRepliq) {
-        return Object.keys(val.fields).reduce((acc, name) => acc.concat(getRepliqReferences(val.fields[name])), []);
+        return [];
+        //return Object.keys(val.fields).reduce((acc, name) => acc.concat(getRepliqReferences(val.fields[name])), []);
     }
 
     return [];

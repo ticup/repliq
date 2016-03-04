@@ -13,17 +13,16 @@ var Communication_1 = require("../shared/Communication");
 var debug = Debug("Repliq:com:server");
 var locald = Debug("Repliq:server");
 function createServer(opts) {
-    return new RepliqServer(opts.port ? opts.port : opts.app, opts.schemaPath, opts.yieldEvery, opts.manualPropagation);
+    return new RepliqServer(opts.port ? opts.port : opts.app, opts.schema, opts.yieldEvery, opts.manualPropagation);
 }
 exports.createServer = createServer;
 var RepliqServer = (function (_super) {
     __extends(RepliqServer, _super);
-    function RepliqServer(app, schemaPath, yieldEvery, manualPropagation) {
+    function RepliqServer(app, schema, yieldEvery, manualPropagation) {
         var _this = this;
+        _super.call(this, schema, yieldEvery);
         this.clients = {};
         this.requiresYield = false;
-        var schema = createSchema(schemaPath);
-        _super.call(this, schema, yieldEvery);
         this.channel = io(app);
         this.channel.on("connect", function (socket) {
             debug("client connected");
@@ -83,8 +82,8 @@ var RepliqServer = (function (_super) {
         reply(null, com.toJSON(result));
     };
     RepliqServer.prototype.handleYieldPull = function (json) {
-        debug("YieldPull: received round");
         var round = Round_1.Round.fromJSON(json, this);
+        debug("YieldPull: received round " + round.toString());
         this.incoming.push(round);
         this.notifyChanged();
     };
@@ -167,6 +166,7 @@ var RepliqServer = (function (_super) {
         client.serverNr = round.getServerNr();
         this.extendReferences(id, round);
         var cround = round.copyFor(client.clientNr, this.getReferences(id));
+        debug("sending " + cround.toString());
         var json = cround.toJSON();
         console.assert(round.containsOrigin(id) || json.operations.length > 0);
         return json;

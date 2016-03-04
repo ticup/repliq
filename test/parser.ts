@@ -1,6 +1,7 @@
 ///<reference path="../src/server/references.d.ts"/>
 
 import * as should from "should";
+import * as fs from "fs";
 
 import parser = require("../src/server/analyser/parser");
 import {Tokens} from "../src/shared/Types";
@@ -166,7 +167,7 @@ describe("parser", () => {
     describe("import statements", () => {
         describe("import {Name} from \"foo\"", () => {
             it("should return an ImportStatements Node", () => {
-                let ast = parse("import {Name} from \"foo\" ");
+                let ast = parse("import {Name} from \"foo\"");
                 should.exist(ast);
                 ast.token.should.equal(Tokens.Program);
                 ast.imports.length.should.equal(1);
@@ -179,7 +180,7 @@ describe("parser", () => {
 
         describe("import {Name} from \"foo\" \n import{Foo, Bar} from \"bar\"", () => {
             it("should return an ImportStatements Node", () => {
-                let ast = parse("import {Name} from \"foo\" \n import{Foo, Bar} from \"path/to/file\" ");
+                let ast = parse("import {Name} from \"foo\" \n import{Foo, Bar} from \"path/to/file\"");
                 should.exist(ast);
                 ast.token.should.equal(Tokens.Program);
                 ast.imports.length.should.equal(2);
@@ -357,4 +358,38 @@ describe("parser", () => {
 
     });
 
+    describe("Import and Prototype", () => {
+        describe("import {Name} from \"foo\"; \n import{Foo, Bar} from \"bar\"", () => {
+            it("should return an ImportStatements Node", () => {
+                let ast = parse("import {Name} from \"foo\" \n import{Foo, Bar} from \"path/to/file\" ");
+                should.exist(ast);
+                ast.token.should.equal(Tokens.Program);
+                ast.imports.length.should.equal(2);
+                let imp1 = ast.imports[0];
+                imp1.names.length.should.equal(1);
+                imp1.names[0].should.equal("Name");
+                imp1.path.should.equal("foo");
+                let imp2 = ast.imports[1];
+                imp2.names.length.should.equal(2);
+                imp2.names[0].should.equal("Foo");
+                imp2.names[1].should.equal("Bar");
+                imp2.path.should.equal("path/to/file");
+            });
+        });
+    });
+
+
+    describe("stubs", () => {
+        it("should successfully parse them", (done) => {
+            Promise.promisify(fs.readdir)(__dirname + "/stubs").then((files) => {
+                Promise.all(files.map((name) => {
+                    Promise.promisify(fs.readFile)(__dirname + "/stubs/" + name).then((file) => {
+                        console.log(file.toString());
+                        let ast = parse(file.toString());
+                        should.exist(ast);
+                    });
+                })).then(_ => done());
+            });
+        });
+    });
 });

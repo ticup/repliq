@@ -1,6 +1,3 @@
-///<reference path="../../../src/server/references.d.ts" />
-///<reference path="../../../typings/tsd.d.ts" />
-///<reference path="../shared/schema.ts" />
 var schema_1 = require("../shared/schema");
 var express = require("express");
 var RepliqServer_1 = require("../../../src/server/RepliqServer");

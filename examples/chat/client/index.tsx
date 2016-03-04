@@ -35,6 +35,7 @@ class MessageListComponent extends React.Component<{getMessages():Promise<Messag
 
     componentDidMount() {
         this.props.getMessages().then((messages: MessageList) => {
+            window["messages"] = messages;
             this.setState({messages});
             client.on("yield", () =>
                 this.setState({messages})
@@ -43,7 +44,7 @@ class MessageListComponent extends React.Component<{getMessages():Promise<Messag
     }
 
     render() {
-        let items = this.state.messages.get("items").map((message: Message) => <MessageComponent message={message}/>);
+        let items = this.state.messages.items.map((message: Message) => <MessageComponent message={message} key={message.getId()}/>);
 
         return (
             <div>
@@ -52,21 +53,21 @@ class MessageListComponent extends React.Component<{getMessages():Promise<Messag
                         {items}
                     </div>
                 </div>
-                <NewMessageComponent sendMessage={(text: string) => this.state.messages.add(Message.create({text}))}/>
+                <NewMessageComponent sendMessage={(text: string) => this.state.messages.add(Message.create(text))}/>
             </div>
         );
     }
 }
 
 
-class MessageComponent extends React.Component<{message: Message}, {}>{
+class MessageComponent extends React.Component<{message: Message, key: string}, {}>{
 
 
     render() {
         return (
             <div className="item">
                 <div>
-                    {this.props.message.get("text")}
+                    {this.props.message.text}
                 </div>
             </div>
         );

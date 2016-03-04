@@ -22,14 +22,14 @@ let locald = Debug("Repliq:server");
 export interface ServerOptions {
     port?: number;
     app?: http.Server;
-    schemaPath?: string;
+    schema?: RepliqTemplateMap;
     yieldEvery?: number;
     manualPropagation?: boolean;
 }
 
 
 export function createServer(opts: ServerOptions) {
-    return new RepliqServer(opts.port ? opts.port : opts.app, opts.schemaPath, opts.yieldEvery, opts.manualPropagation);
+    return new RepliqServer(opts.port ? opts.port : opts.app, opts.schema, opts.yieldEvery, opts.manualPropagation);
 }
 
 
@@ -63,8 +63,7 @@ export class RepliqServer extends RepliqManager {
     private requiresYield = false;
 
     // http server or port number, which will create its own http server.
-    constructor(app?: http.Server | number, schemaPath?: string, yieldEvery?: number, manualPropagation?: boolean) {
-        let schema = createSchema(schemaPath);
+    constructor(app?: http.Server | number, schema?: RepliqTemplateMap, yieldEvery?: number, manualPropagation?: boolean) {
         super(schema, yieldEvery);
 
         this.channel = io(app);
@@ -132,6 +131,7 @@ export class RepliqServer extends RepliqManager {
         if (!handler) {
             return reply("No compatible function for " + selector);
         }
+        // TODO: check if the repliqs passed exist
         let args = sargs.map((a) => com.fromJSON(a, this));
         let result = handler.apply(this.api, args);
         let references = getRepliqReferences(result);
@@ -140,8 +140,8 @@ export class RepliqServer extends RepliqManager {
     }
 
     handleYieldPull(json: RoundJSON) {
-        debug("YieldPull: received round");
         let round = Round.fromJSON(json, this);
+        debug("YieldPull: received round " + round.toString());
         this.incoming.push(round);
         this.notifyChanged();
     }
@@ -244,6 +244,7 @@ export class RepliqServer extends RepliqManager {
         client.serverNr = round.getServerNr();
         this.extendReferences(id, round);
         let cround = round.copyFor(client.clientNr, this.getReferences(id));
+        debug("sending " + cround.toString());
         let json = cround.toJSON();
         console.assert(round.containsOrigin(id) || json.operations.length > 0);
         return json;

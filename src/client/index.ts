@@ -1,4 +1,6 @@
 /// <reference path="./RepliqClient" />
 
 export {RepliqClient} from "./RepliqClient" ;
-export {sync, Repliq} from "../shared/Repliq";
+export {Repliq} from "../shared/Repliq";
+export {Time} from "../shared/protocols/Time";
+export {List, is} from "immutable";

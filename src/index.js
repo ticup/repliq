@@ -4,5 +4,5 @@ var index_2 = require("./server/index");
 exports.RepliqServer = index_2.RepliqServer;
 exports.createServer = index_2.createServer;
 var Repliq_1 = require("./shared/Repliq");
-exports.sync = Repliq_1.sync;
+exports.Repliq = Repliq_1.Repliq;
 //# sourceMappingURL=index.js.map

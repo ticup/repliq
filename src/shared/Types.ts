@@ -38,6 +38,7 @@ export enum Tokens {
 
 export let NativeTypes = {
     String: {},
-    Intger: {},
-    Boolean: {}
+    Integer: {},
+    Boolean: {},
+    Repliq: {}
 };

@@ -1,0 +1,1 @@
+let B = Repliq.extend({ foo: String })

@@ -25,5 +25,24 @@ Changes made on the server itself, i.e. by the server itself, will not propagate
 
 ## Running with Debug Output
 
-DEBUG="Repliq:*" node ...
+Node.js
 
+        DEBUG="Repliq:*" node ...
+
+Browser
+
+        localStorage.debug = "Repliq:*"
+
+
+
+## Compiling Examples
+
+        npm run compile-example -- <example name>
+      
+e.g.
+
+        npm run compile-example -- chat
+
+or if you want to compile all:
+
+        npm run compile-example

@@ -6,6 +6,7 @@ var __extends = (this && this.__extends) || function (d, b) {
 var RepliqData_1 = require("./RepliqData");
 var events_1 = require("events");
 var immutable_1 = require("immutable");
+require("harmony-reflect");
 var Repliq = (function (_super) {
     __extends(Repliq, _super);
     function Repliq(template, data, manager, clientId, id) {
@@ -20,9 +21,8 @@ var Repliq = (function (_super) {
         return this.id;
     };
     Repliq.stub = function (args) {
-        if (args === void 0) { args = {}; }
-        var data = new RepliqData_1.RepliqData(args);
-        var repl = new this(this, data, null, null);
+        if (args === void 0) { args = []; }
+        var data = new RepliqData_1.RepliqData();
         var Stub = (function (_super) {
             __extends(Stub, _super);
             function Stub(template, data) {
@@ -41,35 +41,45 @@ var Repliq = (function (_super) {
             };
             return Stub;
         })(this);
-        return new Stub(this, data);
+        var repl = new Stub(this, data);
+        var proxy = createProxy(repl);
+        if (repl.getMethod("init")) {
+            repl.getMethod("init").apply(proxy, args);
+        }
+        return proxy;
     };
-    Repliq.create = function (args) {
-        if (args === void 0) { args = {}; }
+    Repliq.create = function () {
+        var args = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            args[_i - 0] = arguments[_i];
+        }
         if (typeof this.manager === "undefined") {
             throw new Error("Repliq must first be declared to a manager");
         }
-        this.manager.create(this, args);
+        return this.manager.create.apply(this.manager, [this].concat(args));
     };
     Repliq.extend = function (props) {
         if (props === void 0) { props = {}; }
-        function F() {
-            Object.keys(props).forEach(function (name) {
-                if (props.hasOwnProperty(name)) {
-                    var val = props[name];
-                    if (typeof val === "function") {
-                    }
-                    else {
-                    }
-                }
-            });
-        }
+        var F = function F() { };
+        F.prototype = Object.assign(Object.create(Repliq.prototype), props);
+        Object.keys(Repliq).forEach(function (key) { return F[key] = Repliq[key]; });
         return F;
     };
+    Repliq.toStrings = function () {
+        return "P: " + this.getId().toString().slice(-5);
+    };
     Repliq.prototype.getMethod = function (op) {
-        return this[op];
+        var method = this[op];
+        if (typeof method === "function") {
+            return method;
+        }
+        return undefined;
     };
     Repliq.prototype.get = function (key) {
         return this.data.getTentative(key);
+    };
+    Repliq.prototype.has = function (key) {
+        return this.data.has(key);
     };
     Repliq.prototype.set = function (key, value) {
         return this.data.setTentative(key, value);
@@ -77,12 +87,11 @@ var Repliq = (function (_super) {
     Repliq.prototype.confirmed = function () {
         return !this.data.hasTentative();
     };
-    Repliq.prototype.getCommit = function (key) {
-        return this.data.getCommitted(key);
+    Repliq.prototype.fields = function () {
+        return this.data.getKeys();
     };
-    Repliq.prototype.call = function (op, fun, args) {
-        var val = this.manager.call(this, this.data, op, fun, args);
-        return val;
+    Repliq.prototype.getCommit = function (key) {
+        return this.data.getCommit(key);
     };
     Repliq.prototype.getTemplate = function () {
         return this.template;
@@ -90,18 +99,14 @@ var Repliq = (function (_super) {
     Repliq.prototype.getId = function () {
         return this.id;
     };
-    Repliq.prototype.committedKeys = function () {
-        return this.data.getCommittedKeys();
-    };
-    Repliq.prototype.init = function () { };
     Repliq.prototype.toString = function () {
-        return "{" + this.clientId.slice(-5) + "@" + this.getId().slice(-5) + "}";
+        return "{" + this.getId().slice(-5) + "}";
     };
     Repliq.CHANGE_EXTERNAL = "change_external";
     Repliq.CHANGE = "change";
     Repliq.CREATE_SELECTOR = "createRepliq";
     Repliq.isRepliq = true;
-    Repliq.fields = {};
+    Repliq.isPrototype = true;
     return Repliq;
 })(events_1.EventEmitter);
 exports.Repliq = Repliq;
@@ -118,6 +123,43 @@ function sync(target, key, prop) {
     };
 }
 exports.sync = sync;
+function createProxy(repl) {
+    var proxy = new Proxy(repl, {
+        has: function (target, key) {
+            return target.has(key);
+        },
+        get: function (target, key, receiver) {
+            var rmethod = Repliq.prototype[key];
+            if (typeof rmethod === "function") {
+                return rmethod.bind(target);
+            }
+            var method = target.getMethod(key);
+            if (typeof method !== "undefined") {
+                return function repliqMethod() {
+                    var args = [];
+                    for (var _i = 0; _i < arguments.length; _i++) {
+                        args[_i - 0] = arguments[_i];
+                    }
+                    var val = repl.manager.call(target, target.data, proxy, key, method, args);
+                    return val;
+                };
+            }
+            return target.get(key);
+        },
+        set: function (target, key, value, receiver) {
+            target.set(key, value);
+            return true;
+        },
+        preventExtensions: function () { return true; },
+        setPrototypeOf: function () { return false; },
+        deleteProperty: function (target, key) { return false; },
+        defineProperty: function (target, key, attributes) { return false; },
+        enumerate: function (target) { return target.fields(); },
+        ownKeys: function (target) { return target.fields(); }
+    });
+    return proxy;
+}
+exports.createProxy = createProxy;
 function validate(val) {
     var type = typeof val;
     if (type === "number" || type === "string" || type == "boolean" || type == "undefined") {

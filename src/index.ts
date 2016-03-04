@@ -4,4 +4,4 @@
 
 export {RepliqClient} from "./client/index";
 export {RepliqServer, createServer} from "./server/index";
-export {sync} from "./shared/Repliq";
+export {Repliq} from "./shared/Repliq";

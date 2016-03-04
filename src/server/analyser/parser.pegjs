@@ -36,18 +36,42 @@
 
 
 Start
-    = RootProgram
+    = __ program:RootProgram __
+    { return program; }
 
 
 RootProgram
-    = imports:ImportStatements __ declarations:PrototypeDeclarations
-    {
-        return {
-            token: Tokens.Program,
-            imports: imports,
-            declarations: declarations
-        };
-    }
+    =
+    declarations:PrototypeDeclarations
+        {
+            return {
+                token: Tokens.Program,
+                imports: [],
+                declarations: declarations
+            };
+        } /
+        imports:ImportStatements (WhiteSpace)* StatementSeparator? __ declarations:PrototypeDeclarations
+            {
+                return {
+                    token: Tokens.Program,
+                    imports: imports,
+                    declarations: declarations
+                };
+            } /
+    imports:ImportStatements
+        {
+            return {
+                token: Tokens.Program,
+                imports: imports,
+                declarations: []
+            };
+        }
+
+
+
+
+
+
 
 
 /* Import Statements */
@@ -58,10 +82,6 @@ ImportStatements
     {
         return [first].concat(extract(elements,3));
     }
-    / __
-     {
-        return [];
-     }
 
 ImportStatement
     = ImportToken __ "{" __ ids: ImportNameList? __ "}" __ FromToken __ path:StringLiteral
@@ -104,10 +124,6 @@ PrototypeDeclarations
     {
         return [first].concat(extract(elements,3));
     }
-    / __
-     {
-        return [];
-     }
 
 PrototypeDeclaration
     = LetToken __ name:IdentifierName __ "=" __ supr:IdentifierName ".extend({" __ properties:PropertyDeclarations __ "})"

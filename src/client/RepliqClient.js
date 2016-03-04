@@ -1,3 +1,4 @@
+"use strict";
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -5,7 +6,7 @@ var __extends = (this && this.__extends) || function (d, b) {
 };
 var Debug = require("debug");
 var io = require('socket.io-client');
-var Promise = require("bluebird");
+var es6_promise_1 = require('es6-promise');
 var com = require("../shared/Communication");
 var RepliqManager_1 = require("../shared/RepliqManager");
 var Repliq_1 = require("../shared/Repliq");
@@ -25,12 +26,12 @@ var RepliqClient = (function (_super) {
     };
     RepliqClient.prototype.setupYieldPush = function (channel) {
         var _this = this;
-        channel.on("YieldPush", function (round) { return _this.handleYieldPull(round); });
+        channel.on("YieldPush", function (round) { return _this.handleYieldPush(round); });
     };
     RepliqClient.prototype.handshake = function () {
         var _this = this;
         this.channel.emit("handshake", { clientId: this.getId(), clientNr: this.getRoundNr(), serverNr: this.serverNr });
-        this.onConnectP = new Promise(function (resolve, reject) {
+        this.onConnectP = new es6_promise_1.Promise(function (resolve, reject) {
             _this.channel.on("handshake", function (_a) {
                 var err = _a.err, lastClientNr = _a.lastClientNr, lastServerNr = _a.lastServerNr, round = _a.round;
                 if (err) {
@@ -57,8 +58,8 @@ var RepliqClient = (function (_super) {
         });
         return this.onConnectP;
     };
-    RepliqClient.prototype.handleYieldPull = function (json) {
-        debug("YieldPull: received round");
+    RepliqClient.prototype.handleYieldPush = function (json) {
+        debug("YieldPush: received round");
         var round = Round_1.Round.fromJSON(json, this);
         this.incoming.push(round);
     };
@@ -72,7 +73,11 @@ var RepliqClient = (function (_super) {
             args[_i - 1] = arguments[_i];
         }
         return this.onConnect().then(function () {
-            return new Promise(function (resolve, reject) {
+            return new es6_promise_1.Promise(function (resolve, reject) {
+                _this.yield();
+                if (_this.replaying) {
+                    return reject("cannot send in a repliq method");
+                }
                 debug("sending rpc " + selector + "(" + args + ")");
                 var rpc = { selector: selector, args: args.map(com.toJSON) };
                 _this.channel.emit("rpc", rpc, function (error, result) {
@@ -94,10 +99,11 @@ var RepliqClient = (function (_super) {
             var round = this.current;
             this.pending.push(round);
             this.current = this.newRound();
-            debug("YieldPull: " + JSON.stringify(round.toJSON()));
+            debug("YieldPull: " + round.toString());
             this.channel.emit("YieldPull", round.toJSON());
         }
         if (this.incoming.length > 0) {
+            debug("YieldPush: " + this.incoming);
             this.replaying = true;
             var pending = this.pending;
             var last = this.incoming[this.incoming.length - 1];
@@ -105,15 +111,15 @@ var RepliqClient = (function (_super) {
                 return r.setToCommit();
             });
             var affectedExt = this.replay(this.incoming);
-            var confirmedNr = last.getClientNr();
-            this.pending = pending.filter(function (r) { return r.getClientNr() > confirmedNr; });
+            var confirmedNr_1 = last.getClientNr();
+            this.pending = pending.filter(function (r) { return r.getClientNr() > confirmedNr_1; });
             console.assert(this.serverNr <= last.getServerNr() || this.serverNr == -1);
             this.serverNr = last.getServerNr();
             this.pending.forEach(function (round) {
                 return _this.play(round);
             });
             this.incoming = [];
-            pending.forEach(function (r) { return r.getClientNr() <= confirmedNr ? _this.confirmed.push(r) : null; });
+            pending.forEach(function (r) { return r.getClientNr() <= confirmedNr_1 ? _this.confirmed.push(r) : null; });
             this.replaying = false;
             affectedExt.forEach(function (rep) { rep.emit(Repliq_1.Repliq.CHANGE_EXTERNAL); rep.emit(Repliq_1.Repliq.CHANGE); });
         }
@@ -123,6 +129,6 @@ var RepliqClient = (function (_super) {
         return this.serverNr;
     };
     return RepliqClient;
-})(RepliqManager_1.RepliqManager);
+}(RepliqManager_1.RepliqManager));
 exports.RepliqClient = RepliqClient;
 //# sourceMappingURL=RepliqClient.js.map

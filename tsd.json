@@ -23,9 +23,6 @@
     "should/should.d.ts": {
       "commit": "fb2b3b1e068c9ff7d8f9b0851c08d37d96c95c38"
     },
-    "bluebird/bluebird.d.ts": {
-      "commit": "715df764419937a75a25dcd76bfc954157bc7b96"
-    },
     "node-uuid/node-uuid.d.ts": {
       "commit": "78d36dd49b6b55b9fdfe61776a12bf05c8b07777"
     },
@@ -49,6 +46,9 @@
     },
     "react/react-dom.d.ts": {
       "commit": "220716d99a77df1654fb4f6cd760dc134ffa8e89"
+    },
+    "es6-promise/es6-promise.d.ts": {
+      "commit": "4ba57e605bd71bf7248de65aac0b4f50e3eb1c9e"
     }
   }
 }

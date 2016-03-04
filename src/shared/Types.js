@@ -1,3 +1,4 @@
+"use strict";
 (function (Tokens) {
     Tokens[Tokens["Plus"] = 0] = "Plus";
     Tokens[Tokens["PlusPlus"] = 1] = "PlusPlus";
@@ -28,7 +29,8 @@
 var Tokens = exports.Tokens;
 exports.NativeTypes = {
     String: {},
-    Intger: {},
-    Boolean: {}
+    Integer: {},
+    Boolean: {},
+    Repliq: {}
 };
 //# sourceMappingURL=Types.js.map

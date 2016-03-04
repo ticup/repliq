@@ -1,6 +1,3 @@
-///<reference path="../../../typings/tsd.d.ts" />
-///<reference path="../../../src/client/references.d.ts" />
-///<reference path="../shared/schema.ts" />
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -10,17 +7,27 @@ var React = require("react");
 var ReactDOM = require("react-dom");
 var index_1 = require("../../../src/client/index");
 var schema_1 = require("../shared/schema");
-var client = new index_1.RepliqClient("localhost:3000", { Grocery: schema_1.Grocery, GroceryList: schema_1.GroceryList });
+var client = new index_1.RepliqClient(null, { Grocery: schema_1.Grocery, GroceryList: schema_1.GroceryList }, 1000);
 var MainComponent = (function (_super) {
     __extends(MainComponent, _super);
     function MainComponent() {
         _super.apply(this, arguments);
+        this.state = { groceries: null };
     }
+    MainComponent.prototype.componentDidMount = function () {
+        var _this = this;
+        client.send("groceries").then(function (groceries) {
+            _this.setState({ groceries: groceries });
+        });
+    };
     MainComponent.prototype.render = function () {
         var _this = this;
-        return (React.createElement("div", {"className": "container"}, React.createElement(GroceryListComponent, {"groceries": this.props.groceries}), React.createElement(NewGroceryComponent, {"addGrocery": function (name, count) {
-            _this.props.groceries.call("add", client.create(schema_1.Grocery, { name: name, count: count }));
-        }})));
+        if (this.state.groceries) {
+            return (React.createElement("div", {"className": "container"}, React.createElement(GroceryListComponent, {"groceries": this.props.groceries}), React.createElement(NewGroceryComponent, {"addGrocery": function (name, count) {
+                _this.props.groceries.call("add", client.create(schema_1.Grocery, { name: name, count: count }));
+            }}), ";"));
+        }
+        return React.createElement(LoadingComponent, null);
     };
     return MainComponent;
 })(React.Component);
@@ -64,7 +71,19 @@ var NewGroceryComponent = (function (_super) {
     };
     return NewGroceryComponent;
 })(React.Component);
+var LoadingComponent = (function (_super) {
+    __extends(LoadingComponent, _super);
+    function LoadingComponent() {
+        _super.apply(this, arguments);
+    }
+    LoadingComponent.prototype.render = function () {
+        React.createElement("div", {"class": "container"}, " Loading ... ");
+    };
+    return LoadingComponent;
+})(React.Component);
 client.send("getGroceries").then(function (groceries) {
-    ReactDOM.render(React.createElement(MainComponent, {"groceries": groceries}), document.getElementById("main"));
+    var comp = React.createElement(MainComponent, {"groceries": groceries});
+    ReactDOM.render(comp, document.getElementById("main"));
+    grocery.onChange(function () { return comp.forceUpdate(); });
 });
 //# sourceMappingURL=index.js.map

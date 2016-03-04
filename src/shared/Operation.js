@@ -40,7 +40,8 @@ var Operation = (function () {
         return new Operation(undefined, selector, args);
     };
     Operation.prototype.toString = function () {
-        return "" + this.targetId.slice(-5) + "." + this.selector + "(" + this.args.map(function (arg) { return arg.toString(); }).join(", ") + ")";
+        var args = this.args.map(function (arg) { return arg.isPrototype ? arg.toStrings() : (typeof arg === "string" ? arg.slice(-5) : arg.toString()); }).join(", ");
+        return "" + (typeof this.targetId === "undefined" ? "" : this.targetId.slice(-5)) + "." + this.selector + "(" + args + ")";
     };
     return Operation;
 })();

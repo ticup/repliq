@@ -4,7 +4,8 @@ var exec = require('child_process').exec;
 var fs = require("fs");
 //var child;
 
-var opts = "--module commonjs --removeComments --preserveConstEnums --sourceMap --experimentalDecorators --target ES5 --exclude typings";
+var opts = "--module commonjs --removeComments --preserveConstEnums --sourceMap --experimentalDecorators --target ES5";
+var opts2 = "--module commonjs --removeComments --preserveConstEnums --sourceMap --target ES5";
 var copts = opts + " --jsx react";
 
 function compileAll() {

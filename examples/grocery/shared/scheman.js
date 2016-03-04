@@ -26,6 +26,5 @@ export class Grocery extends Repliq {
 
     merge(item) {
         this.add(item.get("count"));
-        item.become(this);
     }
 }

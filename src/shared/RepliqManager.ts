@@ -1,7 +1,7 @@
 /// <reference path="references.d.ts" />
 /// <reference path="../../typings/tsd.d.ts" />
 
-import {Repliq} from "./Repliq";
+import {Repliq, createProxy} from "./Repliq";
 import {Operation} from "./Operation";
 import {Round} from "./Round";
 import * as Debug from "debug";
@@ -13,6 +13,8 @@ import * as util from "util";
 import {EventEmitter} from "events";
 
 let debug = Debug("Repliq:local");
+require("harmony-reflect");
+
 
 export interface RepliqDataIterator {
     (key: string, value: RepliqData): void;
@@ -46,7 +48,7 @@ export class RepliqManager extends EventEmitter {
     private templateIds: {[id: string]: number};
 
 
-    constructor(schemaPath?: string, yieldEvery?: number) {
+    constructor(schema?: RepliqTemplateMap, yieldEvery?: number) {
         super();
         this.id = guid.v4();
         this.roundNr = -1;
@@ -87,30 +89,41 @@ export class RepliqManager extends EventEmitter {
         Object.keys(templates).forEach((key) => this.declare(templates[key]));
     }
 
+    createRepliq(template: typeof Repliq, args, id?: string) {
+        // we have to turn on 'replaying' to not record what's in the constructor
+        let wasReplaying = this.replaying;
+        this.replaying = true;
+        let data = new RepliqData();
+        let repl = new template(template, data, this, this.id, id);
+        let proxy = createProxy(repl);
+        this.repliqs[repl.getId()] = proxy;
+        this.repliqsData[repl.getId()] = data;
+        if (typeof repl["init"] === "function") {
+            repl["init"].apply(proxy, args);
+        }
+        this.replaying = wasReplaying;
+        data.commitValues();
+        return {repl, proxy};
+    }
 
-    create(template: typeof Repliq, args = {})  {
+    create(template: typeof Repliq, ...args)  {
         if (typeof this.getTemplate(template.getId()) == "undefined") {
             throw new Error("cannot create a repliq that is not declared ");
         }
 
-        // we have to put on replaying to not record what's in the constructor.
-        let wasReplaying = this.replaying;
-        this.replaying = true;
-        let data = new RepliqData();
-        let repl = new template(template, data, this, this.id);
-        this.replaying = wasReplaying;
-        this.repliqs[repl.getId()] = repl;
-        this.repliqsData[repl.getId()] = data;
-        Object.keys(args).forEach((key) => {
-            repl.set(key, args[key]);
-        });
-        data.commitValues();
-        if (!this.replaying)
+        var {repl, proxy} = this.createRepliq(template, args);
+
+        /* root-level method invocation, record */
+        if (!this.replaying) {
+            debug("Recording creation: " + repl.toString());
             this.current.add(Operation.global(Repliq.CREATE_SELECTOR, (<Array<any>>[repl.getId(), template]).concat(args)));
-        return repl;
+        }
+
+        return proxy;
+
     }
 
-    add(template: typeof Repliq, args, id: string) {
+    add(template: typeof Repliq, vals, id: string) {
         if (typeof this.getRepliq(id) !== "undefined") {
             return this.getRepliq(id);
         }
@@ -118,14 +131,20 @@ export class RepliqManager extends EventEmitter {
         this.replaying = true;
         let data = new RepliqData();
         let repl = new template(template, data, this, this.id, id);
-        this.replaying = wasReplaying;
-        this.repliqs[repl.getId()] = repl;
+        let proxy = createProxy(repl);
+        this.repliqs[repl.getId()] = proxy;
         this.repliqsData[repl.getId()] = data;
-        Object.keys(args).forEach((key) => {
-            repl.set(key, args[key]);
+        //if (typeof repl["init"] === "function") {
+        //    repl["init"].apply(proxy, args);
+        //}
+        debug(vals);
+        Object.keys(vals).forEach((key) => {
+            repl.set(key, vals[key]);
         });
+        this.replaying = wasReplaying;
         data.commitValues();
-        return repl;
+
+        return proxy;
     }
 
     getTemplate(id: number) {
@@ -152,7 +171,7 @@ export class RepliqManager extends EventEmitter {
     }
 
 
-    call(repliq: Repliq, data: RepliqData, selector: string, fun: Function, args) {
+    call(repliq: Repliq, data: RepliqData, proxy, selector: string, fun: Function, args) {
         debug("calling " + selector + "(" + args.map((arg) => arg.toString()).join(", ") + ")");
         let startReplay = false;
         //var fun = repliq.getMethod(selector);
@@ -166,11 +185,13 @@ export class RepliqManager extends EventEmitter {
         //} else {
         if (!this.replaying) {
             startReplay = true;
-            debug("recording " + selector +  "(" + args + ")");
-            this.current.add(new Operation(repliq.getId(), selector, args));
+            let op = new Operation(repliq.getId(), selector, args);
+            debug("recording " + op.toString());
+            this.current.add(op);
+            debug(this.current.toString());
             this.replaying = true;
         }
-        let res = fun.apply(repliq, args);
+        let res = fun.apply(proxy, args);
         if (startReplay) {
             this.replaying = false;
             this.notifyChanged();
@@ -183,8 +204,11 @@ export class RepliqManager extends EventEmitter {
     execute(selector: string, id: string, args) {
         if (selector === Repliq.CREATE_SELECTOR) {
             var template = args[0];
-            debug("creating repliq with id " + id + "(" + args[1] + " )");
-            this.add(template, args[1], id);
+            debug("creating repliq with id " + id + "(" + args.slice(1) + " )");
+            if (typeof this.getRepliq(id) !== "undefined") {
+                return this.getRepliq(id);
+            }
+            this.createRepliq(template, args.slice(1), id);
         }
         else {
             return new Error(selector + " does not exist");

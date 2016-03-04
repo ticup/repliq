@@ -1,6 +1,5 @@
 ///<reference path="./references.d.ts" />
 
 export {List, is} from "immutable";
-export {Repliq, sync} from "./Repliq";
-export {Register} from "./protocols/Register";
-export {Set} from "./protocols/Set";
+export {Repliq} from "./Repliq";
+export {Time} from "./protocols/Time";

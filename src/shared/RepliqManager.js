@@ -11,9 +11,10 @@ var guid = require("node-uuid");
 var RepliqData_1 = require("./RepliqData");
 var events_1 = require("events");
 var debug = Debug("Repliq:local");
+require("harmony-reflect");
 var RepliqManager = (function (_super) {
     __extends(RepliqManager, _super);
-    function RepliqManager(schemaPath, yieldEvery) {
+    function RepliqManager(schema, yieldEvery) {
         _super.call(this);
         this.id = guid.v4();
         this.roundNr = -1;
@@ -50,27 +51,37 @@ var RepliqManager = (function (_super) {
         var _this = this;
         Object.keys(templates).forEach(function (key) { return _this.declare(templates[key]); });
     };
-    RepliqManager.prototype.create = function (template, args) {
-        if (args === void 0) { args = {}; }
-        if (typeof this.getTemplate(template.getId()) == "undefined") {
-            throw new Error("cannot create a repliq that is not declared ");
-        }
+    RepliqManager.prototype.createRepliq = function (template, args, id) {
         var wasReplaying = this.replaying;
         this.replaying = true;
         var data = new RepliqData_1.RepliqData();
-        var repl = new template(template, data, this, this.id);
-        this.replaying = wasReplaying;
-        this.repliqs[repl.getId()] = repl;
+        var repl = new template(template, data, this, this.id, id);
+        var proxy = Repliq_1.createProxy(repl);
+        this.repliqs[repl.getId()] = proxy;
         this.repliqsData[repl.getId()] = data;
-        Object.keys(args).forEach(function (key) {
-            repl.set(key, args[key]);
-        });
+        if (typeof repl["init"] === "function") {
+            repl["init"].apply(proxy, args);
+        }
+        this.replaying = wasReplaying;
         data.commitValues();
-        if (!this.replaying)
-            this.current.add(Operation_1.Operation.global(Repliq_1.Repliq.CREATE_SELECTOR, [repl.getId(), template].concat(args)));
-        return repl;
+        return { repl: repl, proxy: proxy };
     };
-    RepliqManager.prototype.add = function (template, args, id) {
+    RepliqManager.prototype.create = function (template) {
+        var args = [];
+        for (var _i = 1; _i < arguments.length; _i++) {
+            args[_i - 1] = arguments[_i];
+        }
+        if (typeof this.getTemplate(template.getId()) == "undefined") {
+            throw new Error("cannot create a repliq that is not declared ");
+        }
+        var _a = this.createRepliq(template, args), repl = _a.repl, proxy = _a.proxy;
+        if (!this.replaying) {
+            debug("Recording creation: " + repl.toString());
+            this.current.add(Operation_1.Operation.global(Repliq_1.Repliq.CREATE_SELECTOR, [repl.getId(), template].concat(args)));
+        }
+        return proxy;
+    };
+    RepliqManager.prototype.add = function (template, vals, id) {
         if (typeof this.getRepliq(id) !== "undefined") {
             return this.getRepliq(id);
         }
@@ -78,14 +89,16 @@ var RepliqManager = (function (_super) {
         this.replaying = true;
         var data = new RepliqData_1.RepliqData();
         var repl = new template(template, data, this, this.id, id);
-        this.replaying = wasReplaying;
-        this.repliqs[repl.getId()] = repl;
+        var proxy = Repliq_1.createProxy(repl);
+        this.repliqs[repl.getId()] = proxy;
         this.repliqsData[repl.getId()] = data;
-        Object.keys(args).forEach(function (key) {
-            repl.set(key, args[key]);
+        debug(vals);
+        Object.keys(vals).forEach(function (key) {
+            repl.set(key, vals[key]);
         });
+        this.replaying = wasReplaying;
         data.commitValues();
-        return repl;
+        return proxy;
     };
     RepliqManager.prototype.getTemplate = function (id) {
         return this.templates[id];
@@ -105,16 +118,18 @@ var RepliqManager = (function (_super) {
         this.templateIds[id] += 1;
         return val;
     };
-    RepliqManager.prototype.call = function (repliq, data, selector, fun, args) {
+    RepliqManager.prototype.call = function (repliq, data, proxy, selector, fun, args) {
         debug("calling " + selector + "(" + args.map(function (arg) { return arg.toString(); }).join(", ") + ")");
         var startReplay = false;
         if (!this.replaying) {
             startReplay = true;
-            debug("recording " + selector + "(" + args + ")");
-            this.current.add(new Operation_1.Operation(repliq.getId(), selector, args));
+            var op = new Operation_1.Operation(repliq.getId(), selector, args);
+            debug("recording " + op.toString());
+            this.current.add(op);
+            debug(this.current.toString());
             this.replaying = true;
         }
-        var res = fun.apply(repliq, args);
+        var res = fun.apply(proxy, args);
         if (startReplay) {
             this.replaying = false;
             this.notifyChanged();
@@ -125,8 +140,11 @@ var RepliqManager = (function (_super) {
     RepliqManager.prototype.execute = function (selector, id, args) {
         if (selector === Repliq_1.Repliq.CREATE_SELECTOR) {
             var template = args[0];
-            debug("creating repliq with id " + id + "(" + args[1] + " )");
-            this.add(template, args[1], id);
+            debug("creating repliq with id " + id + "(" + args.slice(1) + " )");
+            if (typeof this.getRepliq(id) !== "undefined") {
+                return this.getRepliq(id);
+            }
+            this.createRepliq(template, args.slice(1), id);
         }
         else {
             return new Error(selector + " does not exist");

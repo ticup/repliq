@@ -1,3 +1,4 @@
+"use strict";
 var RepliqData = (function () {
     function RepliqData(fields) {
         var _this = this;
@@ -10,6 +11,9 @@ var RepliqData = (function () {
     }
     RepliqData.prototype.get = function (key) {
         return this.getTentative(key);
+    };
+    RepliqData.prototype.has = function (key) {
+        return (typeof this.getTentative(key) !== "undefined");
     };
     RepliqData.prototype.set = function (key, val) {
         return this.setTentative(key, val);
@@ -26,29 +30,29 @@ var RepliqData = (function () {
     RepliqData.prototype.hasTentative = function () {
         return Object.keys(this.tentative).length !== 0;
     };
-    RepliqData.prototype.getKeys = function () {
+    RepliqData.prototype.getTentativeKeys = function () {
         return Object.keys(this.tentative);
     };
-    RepliqData.prototype.getCommitted = function (key) {
+    RepliqData.prototype.getCommit = function (key) {
         return this.committed[key];
     };
-    RepliqData.prototype.getCommittedKeys = function () {
+    RepliqData.prototype.getKeys = function () {
         return Object.keys(this.committed);
     };
     RepliqData.prototype.commitValues = function () {
         var _this = this;
-        this.getKeys().forEach(function (key) {
+        this.getTentativeKeys().forEach(function (key) {
             _this.committed[key] = _this.tentative[key];
             delete _this.tentative[key];
         });
     };
     RepliqData.prototype.setToCommit = function () {
         var _this = this;
-        this.getCommittedKeys().forEach(function (key) {
-            return _this.tentative[key] = _this.committed[key];
+        this.getTentativeKeys().forEach(function (key) {
+            return delete _this.tentative[key];
         });
     };
     return RepliqData;
-})();
+}());
 exports.RepliqData = RepliqData;
 //# sourceMappingURL=RepliqData.js.map
